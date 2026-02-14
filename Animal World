@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Animal World — Explorer + Food Chain + Quiz</title>
+  <style>
+    :root{
+      --bg:#071018;
+      --panel:rgba(15, 25, 40, .88);
+      --panel2:rgba(10, 18, 30, .86);
+      --card:rgba(255,255,255,.05);
+      --stroke:rgba(255,255,255,.12);
+
+      --text:#eaf2ff;
+      --muted:#9eb0c9;
+
+      --accent:#7aaaff;
+      --green:#5ef0a3;
+      --yellow:#ffcc66;
+      --red:#ff6b6b;
+      --purple:#b18cff;
+    }
+
+    html,body{height:100%; margin:0; background:radial-gradient(1200px 700px at 20% 10%, rgba(122,170,255,.18), transparent 60%),
+                                          radial-gradient(1000px 700px at 80% 40%, rgba(94,240,163,.12), transparent 60%),
+                                          var(--bg);
+              color:var(--text); font:15px system-ui, Segoe UI, Roboto, Arial;}
+    *{box-sizing:border-box}
+    a{color:inherit}
+
+    .app{
+      max-width:1200px;
+      margin:0 auto;
+      padding:14px;
+      display:grid;
+      gap:14px;
+    }
+
+    /* Header */
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      padding:14px;
+      border:1px solid var(--stroke);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px;
+    }
+    .brand{display:flex; align-items:center; gap:10px;}
+    .logo{
+      width:44px; height:44px; border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:radial-gradient(60px 60px at 30% 20%, rgba(122,170,255,.35), transparent 60%),
+                 radial-gradient(60px 60px at 70% 70%, rgba(94,240,163,.22), transparent 60%),
+                 rgba(255,255,255,.05);
+      display:grid; place-items:center;
+    }
+    .brand h1{margin:0; font-size:16px;}
+    .brand .sub{color:var(--muted); font-size:12px; margin-top:2px;}
+    .headerRight{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+
+    /* Tabs */
+    .tabs{
+      display:flex; gap:8px; flex-wrap:wrap;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:6px;
+    }
+    .tab{
+      display:flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      border:1px solid transparent;
+      color:rgba(234,242,255,.85);
+      user-select:none;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .tab:hover{background:rgba(255,255,255,.05)}
+    .tab.active{
+      background:rgba(122,170,255,.14);
+      border-color:rgba(122,170,255,.35);
+      color:var(--text);
+    }
+
+    /* Layout: main sections */
+    .shell{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .shell{grid-template-columns: 1fr;}
+    }
+
+    .panel{
+      border:1px solid var(--stroke);
+      background:var(--panel);
+      border-radius:18px;
+      padding:12px;
+      overflow:hidden;
+    }
+
+    .sectionTitle{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:10px;
+    }
+    .sectionTitle h2{margin:0; font-size:14px;}
+    .pill{
+      font-size:12px; color:rgba(234,242,255,.82);
+      padding:3px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.05);
+      display:inline-flex; align-items:center; gap:8px;
+      white-space:nowrap;
+    }
+
+    /* Controls */
+    .controls{display:grid; gap:10px;}
+    .input{
+      display:flex; gap:10px; align-items:center;
+      padding:10px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+    }
+    .input svg{opacity:.9}
+    input[type="text"], select{
+      width:100%;
+      background:transparent;
+      color:var(--text);
+      border:0;
+      outline:none;
+      font-size:14px;
+    }
+    select{appearance:none}
+    .btnRow{display:flex; gap:8px; flex-wrap:wrap}
+    button{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      transition: transform .12s ease, filter .12s ease, background .12s ease, border-color .12s ease;
+    }
+    button:hover{filter:brightness(1.06); background:rgba(255,255,255,.06)}
+    button:active{transform:translateY(1px)}
+    .btnAccent{border-color:rgba(122,170,255,.35); background:rgba(122,170,255,.14)}
+    .btnGreen{border-color:rgba(94,240,163,.35); background:rgba(94,240,163,.10)}
+    .btnYellow{border-color:rgba(255,204,102,.35); background:rgba(255,204,102,.10)}
+
+    /* Student-friendly cards */
+    .gridCards{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+    }
+    @media (max-width: 1150px){ .gridCards{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+    @media (max-width: 720px){ .gridCards{grid-template-columns: 1fr;} }
+
+    .cardA{
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px;
+      overflow:hidden;
+      cursor:pointer;
+      transition: transform .14s ease, border-color .14s ease;
+    }
+    .cardA:hover{transform: translateY(-2px); border-color:rgba(122,170,255,.25);}
+    .cardA.active{border-color:rgba(94,240,163,.40); box-shadow:0 12px 30px rgba(0,0,0,.25)}
+    .imgWrap{
+      height:140px;
+      background:radial-gradient(700px 240px at 20% 20%, rgba(122,170,255,.22), transparent 60%),
+                 radial-gradient(700px 240px at 70% 70%, rgba(94,240,163,.14), transparent 60%),
+                 rgba(255,255,255,.03);
+      position:relative;
+      overflow:hidden;
+    }
+    .imgWrap img{
+      width:100%; height:100%; object-fit:cover;
+      opacity:.95;
+      display:block;
+    }
+    .fallbackBadge{
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+      color:rgba(234,242,255,.85);
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .cardBody{padding:10px 12px;}
+    .name{font-weight:850; font-size:15px; margin:0;}
+    .sci{color:var(--muted); font-size:12px; margin-top:2px;}
+    .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+    .tag{
+      font-size:12px;
+      padding:3px 9px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.05);
+      color:rgba(234,242,255,.80);
+      display:inline-flex; align-items:center; gap:6px;
+    }
+
+    /* Detail area */
+    .detail{
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px;
+      padding:12px;
+      margin-bottom:12px;
+    }
+    .detailTop{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+    .detailTitle{display:flex; gap:10px; align-items:center;}
+    .avatar{
+      width:44px; height:44px; border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      display:grid; place-items:center;
+      font-size:22px;
+    }
+    .detail h3{margin:0; font-size:16px;}
+    .detail .small{color:var(--muted); font-size:12px; margin-top:2px;}
+    .kv{
+      display:grid; grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:10px; margin-top:10px;
+    }
+    @media (max-width: 720px){ .kv{grid-template-columns:1fr;} }
+    .kvBox{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:10px;
+    }
+    .kvBox .k{color:var(--muted); font-size:12px;}
+    .kvBox .v{margin-top:4px; font-weight:800}
+    .learnBox{
+      margin-top:10px;
+      border:1px solid rgba(122,170,255,.28);
+      background:linear-gradient(180deg, rgba(122,170,255,.12), rgba(122,170,255,.05));
+      border-radius:16px;
+      padding:10px;
+      line-height:1.45;
+      color:rgba(234,242,255,.88);
+    }
+    .learnBox b{color:var(--text)}
+
+    /* Food chain */
+    .chainGrid{display:grid; gap:10px;}
+    .slot{
+      border:1px dashed rgba(255,255,255,.22);
+      background:rgba(255,255,255,.03);
+      border-radius:16px;
+      padding:10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .slot .label{color:var(--muted); font-size:12px;}
+    .slot .value{font-weight:900}
+    .slot button{padding:7px 10px; border-radius:12px}
+    .progress{
+      height:10px; border-radius:999px; overflow:hidden;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .progress > div{height:100%; width:0%}
+
+    /* Quiz */
+    .quizQ{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:12px;
+    }
+    .choices{display:grid; gap:8px; margin-top:10px;}
+    .choice{
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03);
+      border-radius:14px;
+      padding:10px;
+      cursor:pointer;
+      transition:.12s ease;
+    }
+    .choice:hover{background:rgba(255,255,255,.05)}
+    .choice.good{border-color:rgba(94,240,163,.45); background:rgba(94,240,163,.10)}
+    .choice.bad{border-color:rgba(255,107,107,.45); background:rgba(255,107,107,.10)}
+
+    /* toast */
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(10,18,30,.92);
+      color:var(--text);
+      box-shadow: 0 12px 34px rgba(0,0,0,.35);
+      opacity:0; pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+      max-width:min(760px, calc(100vw - 30px));
+      text-align:center;
+      z-index:20;
+    }
+    .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+    /* hide sections */
+    .hidden{display:none !important;}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">🦁</div>
+      <div>
+        <h1>Animal World</h1>
+        <div class="sub">Explore animal types, habitats, diets, and build food chains 🌍</div>
+      </div>
+    </div>
+
+    <div class="headerRight">
+      <div class="tabs" role="tablist">
+        <div class="tab active" data-tab="explore" role="tab" aria-selected="true">🔎 Explore</div>
+        <div class="tab" data-tab="chain" role="tab" aria-selected="false">🍴 Food Chain</div>
+        <div class="tab" data-tab="quiz" role="tab" aria-selected="false">✅ Quiz</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <!-- LEFT PANEL -->
+    <div class="panel">
+      <div class="sectionTitle">
+        <h2>Find animals</h2>
+        <span class="pill" id="countPill">0 results</span>
+      </div>
+
+      <div class="controls">
+        <div class="input">
+          <!-- search icon -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="rgba(234,242,255,.75)" stroke-width="2"/>
+            <path d="M16.5 16.5 21 21" stroke="rgba(234,242,255,.75)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input id="search" type="text" placeholder="Search: lion, ocean, herbivore, reptile…" />
+        </div>
+
+        <div class="input">
+          <span style="font-size:18px;">🏷️</span>
+          <select id="filterClass"></select>
+        </div>
+
+        <div class="input">
+          <span style="font-size:18px;">🍽️</span>
+          <select id="filterDiet"></select>
+        </div>
+
+        <div class="input">
+          <span style="font-size:18px;">🌿</span>
+          <select id="filterHabitat"></select>
+        </div>
+
+        <div class="btnRow">
+          <button class="btnAccent" id="presetSavanna">🦓 Savanna</button>
+          <button class="btnAccent" id="presetOcean">🐟 Ocean</button>
+          <button id="clearFilters">🧹 Clear</button>
+        </div>
+
+        <div class="learnBox" id="miniLesson">
+          <b>Quick lesson:</b> A <b>species</b> is a group of animals that can reproduce together.
+          A <b>habitat</b> is where they live. A <b>food chain</b> shows how energy moves from one living thing to another.
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT MAIN PANEL -->
+    <div class="panel">
+      <!-- EXPLORE -->
+      <div id="tab_explore">
+        <div class="detail" id="detail">
+          <div class="detailTop">
+            <div class="detailTitle">
+              <div class="avatar" id="dEmoji">🐾</div>
+              <div>
+                <h3 id="dName">Click an animal card 👇</h3>
+                <div class="small" id="dSci">You’ll see its class, diet, and role.</div>
+              </div>
+            </div>
+            <div class="pill" id="dRolePill">🎯 Role: —</div>
+          </div>
+
+          <div class="kv">
+            <div class="kvBox"><div class="k">Animal type (Class)</div><div class="v" id="dClass">—</div></div>
+            <div class="kvBox"><div class="k">Diet</div><div class="v" id="dDiet">—</div></div>
+            <div class="kvBox"><div class="k">Habitat</div><div class="v" id="dHabitat">—</div></div>
+            <div class="kvBox"><div class="k">Food chain role</div><div class="v" id="dRole">—</div></div>
+          </div>
+
+          <div class="learnBox" id="dLearn">
+            <b>What to notice:</b> Choose animals from the same habitat. Then try the Food Chain tab 🍴.
+          </div>
+
+          <div class="btnRow" style="margin-top:10px;">
+            <button class="btnGreen" id="addToChain">➕ Add to food chain</button>
+            <button class="btnYellow" id="random">🎲 Random</button>
+          </div>
+        </div>
+
+        <div class="gridCards" id="grid"></div>
+      </div>
+
+      <!-- FOOD CHAIN -->
+      <div id="tab_chain" class="hidden">
+        <div class="sectionTitle">
+          <h2>Build a food chain (easy mode)</h2>
+          <span class="pill">Tip: pick from the suggested animals</span>
+        </div>
+
+        <div class="learnBox">
+          <b>Rule:</b> Producer → Herbivore → Carnivore → Apex predator → Decomposer.<br/>
+          <span style="color:rgba(234,242,255,.82)">Energy starts with sunlight and producers (plants/algae).</span>
+        </div>
+
+        <div class="chainGrid" style="margin-top:10px;">
+          <div class="slot">
+            <div>
+              <div class="label">🌱 Producer</div>
+              <div class="value" id="slot_producer">—</div>
+            </div>
+            <button data-clear="producer">Clear</button>
+          </div>
+          <div class="slot">
+            <div>
+              <div class="label">🐇 Primary consumer (herbivore)</div>
+              <div class="value" id="slot_primary">—</div>
+            </div>
+            <button data-clear="primary">Clear</button>
+          </div>
+          <div class="slot">
+            <div>
+              <div class="label">🦊 Secondary consumer</div>
+              <div class="value" id="slot_secondary">—</div>
+            </div>
+            <button data-clear="secondary">Clear</button>
+          </div>
+          <div class="slot">
+            <div>
+              <div class="label">🦁 Apex predator</div>
+              <div class="value" id="slot_apex">—</div>
+            </div>
+            <button data-clear="apex">Clear</button>
+          </div>
+          <div class="slot">
+            <div>
+              <div class="label">🍄 Decomposer</div>
+              <div class="value" id="slot_decomposer">—</div>
+            </div>
+            <button data-clear="decomposer">Clear</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div class="pill">Chain score</div>
+          <div class="progress" style="margin-top:8px;"><div id="chainBar"></div></div>
+          <div class="muted" id="chainFeedback" style="margin-top:8px;">Pick animals and build your chain.</div>
+        </div>
+
+        <div class="btnRow" style="margin-top:12px;">
+          <button class="btnAccent" id="presetChainSavanna">🦓 Load Savanna chain</button>
+          <button class="btnAccent" id="presetChainOcean">🐟 Load Ocean chain</button>
+          <button id="clearChain">🧹 Clear chain</button>
+        </div>
+
+        <div class="sectionTitle" style="margin-top:14px;">
+          <h2>Suggested picks for the next slot</h2>
+          <span class="pill" id="suggestPill">Tap an animal below</span>
+        </div>
+        <div class="gridCards" id="suggestGrid"></div>
+      </div>
+
+      <!-- QUIZ -->
+      <div id="tab_quiz" class="hidden">
+        <div class="sectionTitle">
+          <h2>Quiz (instant feedback)</h2>
+          <span class="pill" id="quizPill">0 / 5</span>
+        </div>
+
+        <div class="learnBox">
+          <b>How it works:</b> choose an answer. If it’s wrong, it explains why. 👍
+        </div>
+
+        <div class="quizQ" id="quizBox" style="margin-top:10px;"></div>
+
+        <div class="btnRow" style="margin-top:10px;">
+          <button class="btnYellow" id="nextQ">➡️ Next question</button>
+          <button id="restartQuiz">🔁 Restart</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  // -------------------------
+  // Student-friendly dataset (with images + icons)
+  // You can replace image URLs later with your own hosted images.
+  // -------------------------
+  const animals = [
+    // Producers + decomposers (not animals but needed for chain)
+    {id:"grass", emoji:"🌾", name:"Savanna Grass", sci:"Poaceae spp.", class:"Producer", diet:"Photosynthesis", role:"Producer", habitat:["Savanna"],
+      img:"https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=900&q=60",
+      learn:"Producers make food using sunlight. They are the start of most food chains."},
+    {id:"algae", emoji:"🌿", name:"Marine Algae", sci:"Various algae", class:"Producer", diet:"Photosynthesis", role:"Producer", habitat:["Ocean"],
+      img:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=60",
+      learn:"Many ocean food chains start with algae. They also help produce oxygen."},
+    {id:"fungi", emoji:"🍄", name:"Fungi", sci:"Fungi kingdom", class:"Decomposer", diet:"Decomposition", role:"Decomposer", habitat:["Forest","Savanna","Ocean","Wetland"],
+      img:"https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=60",
+      learn:"Decomposers break down dead material and recycle nutrients back to the soil/water."},
+    {id:"bacteria", emoji:"🦠", name:"Bacteria", sci:"Bacteria", class:"Decomposer", diet:"Decomposition", role:"Decomposer", habitat:["Everywhere"],
+      img:"https://images.unsplash.com/photo-1581091870622-7c7f1f5f9d0b?auto=format&fit=crop&w=900&q=60",
+      learn:"Bacteria are tiny but essential. They recycle nutrients in almost every ecosystem."},
+
+    // Savanna
+    {id:"zebra", emoji:"🦓", name:"Zebra", sci:"Equus quagga", class:"Mammal", diet:"Herbivore", role:"Primary consumer", habitat:["Savanna"],
+      img:"https://images.unsplash.com/photo-1549366021-9f761d450615?auto=format&fit=crop&w=900&q=60",
+      learn:"Herbivores eat plants. They pass plant energy to the rest of the food chain."},
+    {id:"lion", emoji:"🦁", name:"Lion", sci:"Panthera leo", class:"Mammal", diet:"Carnivore", role:"Apex predator", habitat:["Savanna"],
+      img:"https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=900&q=60",
+      learn:"Apex predators are at the top. They help keep animal populations balanced."},
+    {id:"hyena", emoji:"🐾", name:"Spotted Hyena", sci:"Crocuta crocuta", class:"Mammal", diet:"Carnivore", role:"Secondary consumer", habitat:["Savanna"],
+      img:"https://images.unsplash.com/photo-1547721064-da6cfb341d50?auto=format&fit=crop&w=900&q=60",
+      learn:"Secondary consumers eat herbivores (or other consumers). Many are hunters or scavengers."},
+
+    // Ocean
+    {id:"clown", emoji:"🐠", name:"Clownfish", sci:"Amphiprioninae", class:"Fish", diet:"Omnivore", role:"Primary consumer", habitat:["Ocean"],
+      img:"https://images.unsplash.com/photo-1520301255226-bf5f1444511f?auto=format&fit=crop&w=900&q=60",
+      learn:"Omnivores eat both plants and animals. In a chain, they can be primary or secondary."},
+    {id:"penguin", emoji:"🐧", name:"Penguin", sci:"Spheniscidae", class:"Bird", diet:"Carnivore", role:"Secondary consumer", habitat:["Ocean"],
+      img:"https://images.unsplash.com/photo-1456926631375-92c8ce872def?auto=format&fit=crop&w=900&q=60",
+      learn:"Many ocean birds eat fish. That makes them consumers in the middle of a food chain."},
+    {id:"shark", emoji:"🦈", name:"Shark", sci:"Selachimorpha", class:"Fish", diet:"Carnivore", role:"Apex predator", habitat:["Ocean"],
+      img:"https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=60",
+      learn:"Sharks are often apex predators. There are fewer of them because energy is limited."},
+
+    // Other examples
+    {id:"frog", emoji:"🐸", name:"Frog", sci:"Anura", class:"Amphibian", diet:"Carnivore", role:"Secondary consumer", habitat:["Wetland","Forest"],
+      img:"https://images.unsplash.com/photo-1501706362039-c6e80948b14a?auto=format&fit=crop&w=900&q=60",
+      learn:"Amphibians often live near water. Many eat insects and small animals."},
+    {id:"croc", emoji:"🐊", name:"Crocodile", sci:"Crocodylinae", class:"Reptile", diet:"Carnivore", role:"Apex predator", habitat:["River","Wetland","Savanna"],
+      img:"https://images.unsplash.com/photo-1565615833231-e8d5b5d19b24?auto=format&fit=crop&w=900&q=60",
+      learn:"Reptiles are cold-blooded. Many are strong predators and use ambush hunting."},
+    {id:"bee", emoji:"🐝", name:"Honey Bee", sci:"Apis mellifera", class:"Insect", diet:"Herbivore", role:"Primary consumer", habitat:["Forest","Savanna","Farm"],
+      img:"https://images.unsplash.com/photo-1468327768560-75b778cbb551?auto=format&fit=crop&w=900&q=60",
+      learn:"Bees help plants reproduce by pollination. They are important for ecosystems and farms."},
+  ];
+
+  const ICON = {
+    class: "🏷️",
+    diet: "🍽️",
+    habitat: "🌿",
+    role: "🎯"
+  };
+
+  const state = {
+    tab: "explore",
+    selected: null,
+    chain: { producer:null, primary:null, secondary:null, apex:null, decomposer:null },
+    quiz: { i:0, score:0, locked:false }
+  };
+
+  // -------------------------
+  // UI refs
+  // -------------------------
+  const el = {
+    toast: document.getElementById("toast"),
+    tabs: document.querySelectorAll(".tab"),
+
+    countPill: document.getElementById("countPill"),
+    grid: document.getElementById("grid"),
+
+    search: document.getElementById("search"),
+    filterClass: document.getElementById("filterClass"),
+    filterDiet: document.getElementById("filterDiet"),
+    filterHabitat: document.getElementById("filterHabitat"),
+
+    presetSavanna: document.getElementById("presetSavanna"),
+    presetOcean: document.getElementById("presetOcean"),
+    clearFilters: document.getElementById("clearFilters"),
+
+    dEmoji: document.getElementById("dEmoji"),
+    dName: document.getElementById("dName"),
+    dSci: document.getElementById("dSci"),
+    dClass: document.getElementById("dClass"),
+    dDiet: document.getElementById("dDiet"),
+    dHabitat: document.getElementById("dHabitat"),
+    dRole: document.getElementById("dRole"),
+    dRolePill: document.getElementById("dRolePill"),
+    dLearn: document.getElementById("dLearn"),
+    addToChain: document.getElementById("addToChain"),
+    random: document.getElementById("random"),
+
+    // tabs content
+    tab_explore: document.getElementById("tab_explore"),
+    tab_chain: document.getElementById("tab_chain"),
+    tab_quiz: document.getElementById("tab_quiz"),
+
+    // chain
+    slot_producer: document.getElementById("slot_producer"),
+    slot_primary: document.getElementById("slot_primary"),
+    slot_secondary: document.getElementById("slot_secondary"),
+    slot_apex: document.getElementById("slot_apex"),
+    slot_decomposer: document.getElementById("slot_decomposer"),
+    chainBar: document.getElementById("chainBar"),
+    chainFeedback: document.getElementById("chainFeedback"),
+    presetChainSavanna: document.getElementById("presetChainSavanna"),
+    presetChainOcean: document.getElementById("presetChainOcean"),
+    clearChain: document.getElementById("clearChain"),
+    suggestGrid: document.getElementById("suggestGrid"),
+    suggestPill: document.getElementById("suggestPill"),
+
+    // quiz
+    quizBox: document.getElementById("quizBox"),
+    quizPill: document.getElementById("quizPill"),
+    nextQ: document.getElementById("nextQ"),
+    restartQuiz: document.getElementById("restartQuiz"),
+  };
+
+  function toast(msg, ms=1700){
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>el.toast.classList.remove("show"), ms);
+  }
+
+  // -------------------------
+  // Filters
+  // -------------------------
+  function uniq(arr){ return [...new Set(arr)].sort(); }
+  function fillSelect(select, label, values){
+    select.innerHTML="";
+    const o0=document.createElement("option");
+    o0.value=""; o0.textContent=label;
+    select.appendChild(o0);
+    values.forEach(v=>{
+      const o=document.createElement("option");
+      o.value=v; o.textContent=v;
+      select.appendChild(o);
+    });
+  }
+
+  fillSelect(el.filterClass, "🏷️ Animal type (Class)", uniq(animals.map(a=>a.class)));
+  fillSelect(el.filterDiet, "🍽️ Diet", uniq(animals.map(a=>a.diet)));
+  fillSelect(el.filterHabitat, "🌿 Habitat", uniq(animals.flatMap(a=>a.habitat)));
+
+  function matches(a, q){
+    if(!q) return true;
+    const t=q.toLowerCase();
+    const blob=[a.name,a.sci,a.class,a.diet,a.role,a.habitat.join(" "),a.learn].join(" ").toLowerCase();
+    return blob.includes(t);
+  }
+
+  function applyFilters(){
+    const q=el.search.value.trim();
+    const cls=el.filterClass.value;
+    const diet=el.filterDiet.value;
+    const hab=el.filterHabitat.value;
+
+    return animals.filter(a=>{
+      if(!matches(a,q)) return false;
+      if(cls && a.class!==cls) return false;
+      if(diet && a.diet!==diet) return false;
+      if(hab && !a.habitat.includes(hab)) return false;
+      return true;
+    });
+  }
+
+  // -------------------------
+  // Explore cards
+  // -------------------------
+  function tag(text){ return `<span class="tag">${text}</span>`; }
+  function roleTag(role){
+    const icon = role==="Producer" ? "🌱" :
+                 role==="Primary consumer" ? "🐇" :
+                 role==="Secondary consumer" ? "🦊" :
+                 role==="Apex predator" ? "🦁" :
+                 role==="Decomposer" ? "🍄" : "🎯";
+    return `<span class="tag">${icon} ${role}</span>`;
+  }
+
+  function renderGrid(){
+    const list = applyFilters();
+    el.countPill.textContent = `${list.length} animals`;
+    el.grid.innerHTML="";
+
+    list.forEach(a=>{
+      const card=document.createElement("div");
+      card.className="cardA" + (state.selected && state.selected.id===a.id ? " active" : "");
+      card.innerHTML = `
+        <div class="imgWrap">
+          <img src="${a.img}" alt="${a.name}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallbackBadge').style.display='grid'">
+          <div class="fallbackBadge" style="display:none;">${a.emoji} ${a.name}</div>
+        </div>
+        <div class="cardBody">
+          <div class="name">${a.emoji} ${a.name}</div>
+          <div class="sci">${a.sci}</div>
+          <div class="tags">
+            ${tag(`${ICON.class} ${a.class}`)}
+            ${tag(`${ICON.diet} ${a.diet}`)}
+            ${tag(`${ICON.habitat} ${a.habitat[0]}`)}
+            ${roleTag(a.role)}
+          </div>
+        </div>
+      `;
+      card.onclick = ()=>selectAnimal(a.id);
+      el.grid.appendChild(card);
+    });
+  }
+
+  function selectAnimal(id){
+    const a = animals.find(x=>x.id===id);
+    if(!a) return;
+    state.selected = a;
+
+    el.dEmoji.textContent = a.emoji;
+    el.dName.textContent = `${a.emoji} ${a.name}`;
+    el.dSci.textContent = a.sci;
+
+    el.dClass.textContent = a.class;
+    el.dDiet.textContent = a.diet;
+    el.dHabitat.textContent = a.habitat.join(", ");
+    el.dRole.textContent = a.role;
+    el.dRolePill.textContent = `🎯 Role: ${a.role}`;
+
+    el.dLearn.innerHTML = `<b>Student tip:</b> ${a.learn}`;
+
+    renderGrid();
+    renderSuggest(); // update chain suggestions too
+  }
+
+  // -------------------------
+  // Tabs
+  // -------------------------
+  function setTab(tab){
+    state.tab = tab;
+    el.tabs.forEach(t=>{
+      const active = t.dataset.tab===tab;
+      t.classList.toggle("active", active);
+      t.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    el.tab_explore.classList.toggle("hidden", tab!=="explore");
+    el.tab_chain.classList.toggle("hidden", tab!=="chain");
+    el.tab_quiz.classList.toggle("hidden", tab!=="quiz");
+
+    if(tab==="chain") renderSuggest();
+    if(tab==="quiz") renderQuiz();
+  }
+
+  el.tabs.forEach(t => t.onclick = ()=>setTab(t.dataset.tab));
+
+  // -------------------------
+  // Food Chain (student-proof)
+  // -------------------------
+  const slotRole = {
+    producer: "Producer",
+    primary: "Primary consumer",
+    secondary: "Secondary consumer",
+    apex: "Apex predator",
+    decomposer: "Decomposer"
+  };
+
+  function setSlot(slot, a){
+    state.chain[slot] = a;
+    el["slot_"+slot].textContent = a ? `${a.emoji} ${a.name}` : "—";
+    scoreChain();
+    renderSuggest();
+  }
+
+  function clearSlot(slot){
+    setSlot(slot, null);
+  }
+
+  document.querySelectorAll("[data-clear]").forEach(btn=>{
+    btn.onclick = ()=>clearSlot(btn.dataset.clear);
+  });
+
+  el.clearChain.onclick = ()=>{
+    Object.keys(state.chain).forEach(k=>state.chain[k]=null);
+    ["producer","primary","secondary","apex","decomposer"].forEach(k=>el["slot_"+k].textContent="—");
+    scoreChain();
+    renderSuggest();
+    toast("Chain cleared 🧹");
+  };
+
+  function nextNeededSlot(){
+    const order = ["producer","primary","secondary","apex","decomposer"];
+    for(const s of order){
+      if(!state.chain[s]) return s;
+    }
+    return null;
+  }
+
+  function renderSuggest(){
+    const need = nextNeededSlot();
+    if(!need){
+      el.suggestPill.textContent = "✅ Chain complete! Try another habitat.";
+      el.suggestGrid.innerHTML = "";
+      return;
+    }
+    el.suggestPill.textContent = `Next: pick a ${slotRole[need]} (tap a card)`;
+
+    // smart suggestions: match role, and try to match habitat with already chosen ones
+    const chosen = Object.values(state.chain).filter(Boolean);
+    const preferredHabitats = chosen.length ? intersectHabitats(chosen) : [];
+    const candidates = animals
+      .filter(a => a.role === slotRole[need])
+      .sort((a,b)=>{
+        const aMatch = preferredHabitats.length ? preferredHabitats.some(h=>a.habitat.includes(h)) : false;
+        const bMatch = preferredHabitats.length ? preferredHabitats.some(h=>b.habitat.includes(h)) : false;
+        return (bMatch?1:0) - (aMatch?1:0);
+      });
+
+    el.suggestGrid.innerHTML="";
+    candidates.forEach(a=>{
+      const card=document.createElement("div");
+      card.className="cardA";
+      card.innerHTML = `
+        <div class="imgWrap">
+          <img src="${a.img}" alt="${a.name}" onerror="this.style.display='none'; this.parentElement.querySelector('.fallbackBadge').style.display='grid'">
+          <div class="fallbackBadge" style="display:none;">${a.emoji} ${a.name}</div>
+        </div>
+        <div class="cardBody">
+          <div class="name">${a.emoji} ${a.name}</div>
+          <div class="sci">${a.sci}</div>
+          <div class="tags">
+            ${tag(`🌿 ${a.habitat[0]}`)}
+            ${roleTag(a.role)}
+          </div>
+        </div>
+      `;
+      card.onclick = ()=>{ setSlot(need, a); toast(`Added: ${a.name}`); };
+      el.suggestGrid.appendChild(card);
+    });
+  }
+
+  function intersectHabitats(chosen){
+    if(!chosen.length) return [];
+    return chosen.map(x=>x.habitat).reduce((acc, cur)=>acc.filter(h=>cur.includes(h)));
+  }
+
+  function scoreChain(){
+    const c = state.chain;
+    const order=["producer","primary","secondary","apex","decomposer"];
+    let score=0;
+    let feedback=[];
+
+    order.forEach(s=>{
+      if(!c[s]) feedback.push(`Add ${slotRole[s]}.`);
+      else if(c[s].role===slotRole[s]) score += 18;
+      else { score += 6; feedback.push(`"${c[s].name}" is not ideal for ${slotRole[s]}.`); }
+    });
+
+    // habitat bonus
+    const chosen = Object.values(c).filter(Boolean);
+    if(chosen.length>=3){
+      const common = intersectHabitats(chosen);
+      if(common.length){
+        score += 10;
+        feedback.push(`Great! Your chain matches a habitat (${common[0]}).`);
+      } else {
+        feedback.push(`Tip: try picking animals from the same habitat.`);
+      }
+    }
+
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    el.chainBar.style.width = score+"%";
+    el.chainBar.style.background =
+      score>=80 ? "rgba(94,240,163,.85)" :
+      score>=50 ? "rgba(255,204,102,.85)" :
+      "rgba(255,107,107,.85)";
+
+    if(score>=80) feedback.unshift("✅ Awesome chain! Energy decreases at each step (~10% rule).");
+    el.chainFeedback.textContent = feedback.slice(0,2).join(" ");
+  }
+
+  // add selected to chain
+  el.addToChain.onclick = ()=>{
+    if(!state.selected) return toast("Pick an animal first 👇");
+    const roleToSlot = { "Producer":"producer","Primary consumer":"primary","Secondary consumer":"secondary","Apex predator":"apex","Decomposer":"decomposer" };
+    const slot = roleToSlot[state.selected.role];
+    if(!slot) return toast("This one can’t be used in the chain.");
+    setSlot(slot, state.selected);
+    toast(`Added to chain: ${state.selected.name}`);
+  };
+
+  // presets
+  el.presetChainSavanna.onclick = ()=>{
+    setSlot("producer", animals.find(a=>a.id==="grass"));
+    setSlot("primary", animals.find(a=>a.id==="zebra"));
+    setSlot("secondary", animals.find(a=>a.id==="hyena"));
+    setSlot("apex", animals.find(a=>a.id==="lion"));
+    setSlot("decomposer", animals.find(a=>a.id==="fungi"));
+    toast("Savanna chain loaded 🦓");
+    setTab("chain");
+  };
+
+  el.presetChainOcean.onclick = ()=>{
+    setSlot("producer", animals.find(a=>a.id==="algae"));
+    setSlot("primary", animals.find(a=>a.id==="clown"));
+    setSlot("secondary", animals.find(a=>a.id==="penguin"));
+    setSlot("apex", animals.find(a=>a.id==="shark"));
+    setSlot("decomposer", animals.find(a=>a.id==="bacteria"));
+    toast("Ocean chain loaded 🐟");
+    setTab("chain");
+  };
+
+  // -------------------------
+  // Quiz
+  // -------------------------
+  const quiz = [
+    {
+      q:"What is a producer?",
+      choices:[
+        {t:"An organism that makes its own food (usually from sunlight).", ok:true, why:"Yes! Producers create energy-rich food using sunlight (photosynthesis)."},
+        {t:"An animal that hunts other animals.", ok:false, why:"That’s a predator/consumer, not a producer."},
+        {t:"An organism that breaks down dead things.", ok:false, why:"That’s a decomposer."},
+      ]
+    },
+    {
+      q:"In a food chain, what comes after a producer?",
+      choices:[
+        {t:"Primary consumer (usually an herbivore).", ok:true, why:"Correct! Herbivores eat producers first."},
+        {t:"Decomposer", ok:false, why:"Decomposers recycle at the end, not right after producers."},
+        {t:"Apex predator", ok:false, why:"Apex predators are usually near the top, not right after producers."},
+      ]
+    },
+    {
+      q:"Why are there fewer apex predators?",
+      choices:[
+        {t:"Because energy is lost at each step (about the 10% rule).", ok:true, why:"Exactly. Less energy is available at higher trophic levels."},
+        {t:"Because producers don’t exist in nature.", ok:false, why:"Producers exist everywhere: plants/algae."},
+        {t:"Because apex predators do not need food.", ok:false, why:"They do need food, and usually need a lot of it."},
+      ]
+    },
+    {
+      q:"Which is a decomposer?",
+      choices:[
+        {t:"Fungi (mushrooms) that break down dead material.", ok:true, why:"Correct! They recycle nutrients back into the ecosystem."},
+        {t:"Zebra", ok:false, why:"Zebras are primary consumers (herbivores)."},
+        {t:"Shark", ok:false, why:"Sharks are consumers (often apex predators)."},
+      ]
+    },
+    {
+      q:"What is a habitat?",
+      choices:[
+        {t:"The place an organism lives (forest, ocean, desert…).", ok:true, why:"Yes! Habitat is the living place/environment."},
+        {t:"The food an organism eats.", ok:false, why:"That’s diet."},
+        {t:"The name of an organism in Latin.", ok:false, why:"That’s the scientific name."},
+      ]
+    }
+  ];
+
+  function renderQuiz(){
+    const i = state.quiz.i;
+    el.quizPill.textContent = `${state.quiz.score} / ${quiz.length}`;
+    const item = quiz[i] || quiz[0];
+    state.quiz.locked = false;
+
+    el.quizBox.innerHTML = `
+      <div style="font-weight:900; font-size:15px;">Q${i+1}. ${item.q}</div>
+      <div class="choices" id="choices"></div>
+      <div class="learnBox" id="quizWhy" style="margin-top:10px; display:none;"></div>
+    `;
+
+    const choicesEl = document.getElementById("choices");
+    const whyEl = document.getElementById("quizWhy");
+
+    item.choices.forEach((c, idx)=>{
+      const div = document.createElement("div");
+      div.className = "choice";
+      div.textContent = c.t;
+      div.onclick = ()=>{
+        if(state.quiz.locked) return;
+        state.quiz.locked = true;
+
+        if(c.ok){
+          div.classList.add("good");
+          state.quiz.score++;
+          toast("Correct ✅");
+        } else {
+          div.classList.add("bad");
+          toast("Try again ❌");
+        }
+
+        whyEl.style.display = "block";
+        whyEl.innerHTML = `<b>Explanation:</b> ${c.why}`;
+      };
+      choicesEl.appendChild(div);
+    });
+  }
+
+  el.nextQ.onclick = ()=>{
+    state.quiz.i = (state.quiz.i + 1) % quiz.length;
+    renderQuiz();
+  };
+  el.restartQuiz.onclick = ()=>{
+    state.quiz.i = 0; state.quiz.score = 0;
+    renderQuiz();
+    toast("Quiz restarted 🔁");
+  };
+
+  // -------------------------
+  // other controls
+  // -------------------------
+  el.random.onclick = ()=>{
+    const list = applyFilters();
+    const pick = list[Math.floor(Math.random()*list.length)] || animals[Math.floor(Math.random()*animals.length)];
+    selectAnimal(pick.id);
+  };
+
+  el.search.addEventListener("input", renderGrid);
+  el.filterClass.addEventListener("change", renderGrid);
+  el.filterDiet.addEventListener("change", renderGrid);
+  el.filterHabitat.addEventListener("change", renderGrid);
+
+  el.presetSavanna.onclick = ()=>{
+    el.search.value="";
+    el.filterHabitat.value="Savanna";
+    el.filterClass.value="";
+    el.filterDiet.value="";
+    renderGrid();
+    toast("Savanna filter applied 🦓");
+  };
+
+  el.presetOcean.onclick = ()=>{
+    el.search.value="";
+    el.filterHabitat.value="Ocean";
+    el.filterClass.value="";
+    el.filterDiet.value="";
+    renderGrid();
+    toast("Ocean filter applied 🐟");
+  };
+
+  el.clearFilters.onclick = ()=>{
+    el.search.value="";
+    el.filterHabitat.value="";
+    el.filterClass.value="";
+    el.filterDiet.value="";
+    renderGrid();
+    toast("Filters cleared 🧹");
+  };
+
+  // -------------------------
+  // Init
+  // -------------------------
+  function init(){
+    renderGrid();
+    scoreChain();
+    renderSuggest();
+    selectAnimal("lion");
+    renderQuiz();
+  }
+  init();
+})();
+</script>
+</body>
+</html>
