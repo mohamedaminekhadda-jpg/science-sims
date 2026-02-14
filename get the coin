@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Coin Challenge — Candle & Cup</title>
+  <style>
+    :root{
+      --bg:#0b0d12; --panel:#121621; --panel2:#0f1422;
+      --text:#e9eefc; --muted:#9aa7c2; --accent:#7aaaff;
+      --good:#5ef0a3; --bad:#ff6b6b;
+      --stroke: rgba(255,255,255,.10);
+    }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font:14px system-ui,Segoe UI,Roboto,Arial;}
+    .wrap{
+      display:grid; grid-template-columns: 360px 1fr; gap:14px;
+      padding:14px; box-sizing:border-box;
+      min-height:820px;
+    }
+    @media (max-width: 980px){ .wrap{grid-template-columns:1fr; min-height:900px;} }
+    .card{
+      background:rgba(18,22,33,.92);
+      border:1px solid var(--stroke);
+      border-radius:16px;
+      padding:12px;
+    }
+    h1{font-size:16px; margin:0 0 6px;}
+    .muted{color:var(--muted);}
+    .row{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+    button{
+      background:#1b2233; color:var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      padding:8px 10px; border-radius:12px; cursor:pointer;
+    }
+    button:hover{filter:brightness(1.07)}
+    .pill{display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05)}
+    .hud{display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;}
+    .stat{
+      padding:10px; border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .big{font-size:16px; font-weight:600}
+    .callout{
+      margin-top:10px; padding:10px; border-radius:14px;
+      border:1px solid rgba(122,170,255,.25);
+      background:linear-gradient(180deg, rgba(122,170,255,.10), rgba(122,170,255,.04));
+      line-height:1.45;
+    }
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(15,20,34,.92);
+      color:var(--text);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      opacity:0; pointer-events:none;
+      transition: opacity .2s ease, transform .2s ease;
+      max-width:min(720px, calc(100vw - 30px));
+      text-align:center;
+      z-index:10;
+    }
+    .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+    canvas{
+      width:100%; height:100%;
+      display:block;
+      border-radius:16px;
+      background:radial-gradient(1200px 650px at 30% 20%, rgba(97,141,255,.14), transparent 60%);
+      border:1px solid var(--stroke);
+      touch-action:none;
+    }
+    .legend{
+      margin-top:10px;
+      display:grid;
+      gap:6px;
+      font-size:13px;
+    }
+    .legend div{color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Coin Challenge <span class="pill">Candle + Cup</span></h1>
+    <div class="muted">
+      Goal: <b>Get the coin</b> without “touching the water”.
+      You can drag items. Use the science trick.
+    </div>
+
+    <div class="hud">
+      <div class="stat">
+        <div class="muted">Status</div>
+        <div id="status" class="big">Setup</div>
+      </div>
+      <div class="stat">
+        <div class="muted">Coin</div>
+        <div id="coinState" class="big">Wet</div>
+      </div>
+      <div class="stat">
+        <div class="muted">Candle</div>
+        <div id="candleState" class="big">Unlit</div>
+      </div>
+      <div class="stat">
+        <div class="muted">Cup</div>
+        <div id="cupState" class="big">Not covering</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div style="font-weight:600; margin-bottom:6px;">How to play</div>
+      <div class="muted" id="instructions">
+        1) Drag the <b>candle</b> near the coin.<br/>
+        2) Drag the <b>match</b> to the candle to light it.<br/>
+        3) Cover the candle with the <b>cup</b>.<br/>
+        4) Water will move into the cup (half full) and the plate becomes empty.<br/>
+        5) Click the coin to pick it up.
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="hint">Hint</button>
+      <button id="reset">Reset</button>
+      <button id="explain">Explain science</button>
+    </div>
+
+    <div class="legend">
+      <div>Drag items with mouse/touch. Click the coin when it becomes dry.</div>
+      <div>Tip: If something “snaps” into place, it’s probably correct.</div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:12px;">
+    <canvas id="c"></canvas>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  const statusEl = document.getElementById('status');
+  const coinStateEl = document.getElementById('coinState');
+  const candleStateEl = document.getElementById('candleState');
+  const cupStateEl = document.getElementById('cupState');
+  const toast = document.getElementById('toast');
+
+  const btnHint = document.getElementById('hint');
+  const btnReset = document.getElementById('reset');
+  const btnExplain = document.getElementById('explain');
+
+  function showToast(msg, ms=1600){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), ms);
+  }
+
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const r = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(r.width * dpr);
+    canvas.height = Math.floor(r.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+  // Scene
+  const scene = {
+    plate: { x: 0, y: 0, r: 0, innerR: 0 },
+    water: { level: 1.0, target: 1.0 },     // 1.0 = full plate water (teaching)
+    cupWater: { level: 0.0, target: 0.0 },  // 0..1 fill of cup interior
+    win: false,
+    failed: false,
+    step: 0,
+    hintLevel: 0,
+    showExplain: false,
+  };
+
+  // Objects
+  const obj = {
+    coin:   { id:"coin",   x:0,y:0, r:15, pickable:false },
+    candle: { id:"candle", x:0,y:0, w:22,h:46, lit:false, flame:0 },
+    match:  { id:"match",  x:0,y:0, w:54,h:14, used:false },
+    cup:    { id:"cup",    x:0,y:0, w:92,h:120, covering:false, sealed:false },
+  };
+
+  function layout(){
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+
+    scene.plate.x = W*0.52;
+    scene.plate.y = H*0.60;
+    scene.plate.r = Math.min(W,H)*0.30;
+    scene.plate.innerR = scene.plate.r*0.78;
+
+    obj.coin.x = scene.plate.x;
+    obj.coin.y = scene.plate.y + scene.plate.innerR*0.18;
+
+    obj.candle.x = scene.plate.x + scene.plate.innerR*0.22;
+    obj.candle.y = scene.plate.y - scene.plate.innerR*0.10;
+
+    obj.cup.x = scene.plate.x + scene.plate.innerR*0.35;
+    obj.cup.y = scene.plate.y - scene.plate.innerR*0.45;
+
+    obj.match.x = scene.plate.x - scene.plate.r*0.75;
+    obj.match.y = scene.plate.y - scene.plate.r*0.65;
+
+    // baseline fluids (FULL plate water, empty cup)
+    scene.water.level = 1.0;
+    scene.water.target = 1.0;
+    scene.cupWater.level = 0.0;
+    scene.cupWater.target = 0.0;
+  }
+
+  function resetAll(){
+    scene.win = false;
+    scene.failed = false;
+    scene.step = 0;
+    scene.hintLevel = 0;
+    scene.showExplain = false;
+
+    obj.candle.lit = false;
+    obj.candle.flame = 0;
+    obj.match.used = false;
+    obj.cup.covering = false;
+    obj.cup.sealed = false;
+    obj.coin.pickable = false;
+
+    layout();
+    showToast("Reset. Try again!");
+  }
+
+  // Pointer drag
+  let pointer = { down:false, id:null, offX:0, offY:0, x:0, y:0 };
+  function toLocal(e){
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left), y: (e.clientY - r.top) };
+  }
+
+  function hitTest(p){
+    const items = ["cup","match","candle","coin"];
+    for (const id of items){
+      if (id === "coin"){
+        if (Math.hypot(p.x-obj.coin.x, p.y-obj.coin.y) <= obj.coin.r+6) return "coin";
+      } else if (id === "candle"){
+        const left = obj.candle.x - obj.candle.w/2;
+        const top  = obj.candle.y - obj.candle.h;
+        if (p.x>=left-6 && p.x<=left+obj.candle.w+6 && p.y>=top-6 && p.y<=top+obj.candle.h+6) return "candle";
+      } else if (id === "match"){
+        const left = obj.match.x - obj.match.w/2;
+        const top  = obj.match.y - obj.match.h/2;
+        if (p.x>=left-6 && p.x<=left+obj.match.w+6 && p.y>=top-6 && p.y<=top+obj.match.h+6) return "match";
+      } else if (id === "cup"){
+        const left = obj.cup.x - obj.cup.w/2;
+        const top  = obj.cup.y - obj.cup.h;
+        if (p.x>=left-6 && p.x<=left+obj.cup.w+6 && p.y>=top-6 && p.y<=top+obj.cup.h+6) return "cup";
+      }
+    }
+    return null;
+  }
+
+  function onDown(e){
+    const p = toLocal(e);
+    pointer.down = true;
+    pointer.x = p.x; pointer.y = p.y;
+
+    const hit = hitTest(p);
+    pointer.id = hit;
+    if (!hit) return;
+
+    if (hit === "coin"){
+      if (scene.win || scene.failed) return;
+      if (obj.coin.pickable){
+        scene.win = true;
+        showToast("✅ You got the coin without touching water! You win!", 2600);
+      } else {
+        scene.failed = true;
+        showToast("❌ You touched water (coin is still wet). Try again.", 2200);
+      }
+      return;
+    }
+
+    const o = obj[hit];
+    pointer.offX = (o.x - p.x);
+    pointer.offY = (o.y - p.y);
+  }
+
+  function onMove(e){
+    const p = toLocal(e);
+    pointer.x = p.x; pointer.y = p.y;
+    if (!pointer.down || !pointer.id) return;
+    if (pointer.id === "coin") return;
+
+    const o = obj[pointer.id];
+    o.x = p.x + pointer.offX;
+    o.y = p.y + pointer.offY;
+
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+    o.x = clamp(o.x, 20, W-20);
+    o.y = clamp(o.y, 20, H-20);
+  }
+
+  function onUp(){
+    pointer.down = false;
+
+    if (pointer.id === "candle"){
+      const near = Math.hypot(obj.candle.x - obj.coin.x, (obj.candle.y - obj.coin.y)) < scene.plate.innerR*0.45;
+      if (near){
+        obj.candle.x = obj.coin.x + scene.plate.innerR*0.18;
+        obj.candle.y = obj.coin.y - scene.plate.innerR*0.12;
+        showToast("Candle placed. Now light it.");
+        scene.step = Math.max(scene.step, 1);
+      }
+    }
+
+    if (pointer.id === "match"){
+      if (!obj.match.used && !obj.candle.lit){
+        const candleTop = { x: obj.candle.x, y: obj.candle.y - obj.candle.h + 6 };
+        const matchHead = { x: obj.match.x + obj.match.w*0.35, y: obj.match.y };
+        if (Math.hypot(matchHead.x-candleTop.x, matchHead.y-candleTop.y) < 26){
+          obj.candle.lit = true;
+          obj.match.used = true;
+          showToast("🔥 Candle lit! Now cover it with the cup.");
+          scene.step = Math.max(scene.step, 2);
+        }
+      }
+    }
+
+    if (pointer.id === "cup"){
+      const cupBottom = obj.cup.y;
+      const cupCenterX = obj.cup.x;
+      const candleCenter = { x: obj.candle.x, y: obj.candle.y - obj.candle.h*0.5 };
+
+      const aligned = Math.abs(cupCenterX - candleCenter.x) < 26;
+      const lowEnough = (cupBottom > candleCenter.y) && (cupBottom < candleCenter.y + 70);
+
+      if (aligned && lowEnough){
+        obj.cup.x = obj.candle.x;
+        obj.cup.y = obj.candle.y - 8;
+        obj.cup.covering = true;
+        obj.cup.sealed = true;
+        showToast("Cup placed. Water will move into the cup…");
+        scene.step = Math.max(scene.step, 3);
+      } else {
+        obj.cup.covering = false;
+        obj.cup.sealed = false;
+      }
+    }
+
+    pointer.id = null;
+  }
+
+  canvas.addEventListener('pointerdown', (e)=>{ canvas.setPointerCapture(e.pointerId); onDown(e); });
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerup', onUp);
+  canvas.addEventListener('pointercancel', onUp);
+
+  btnReset.onclick = resetAll;
+
+  btnHint.onclick = () => {
+    scene.hintLevel = Math.min(3, scene.hintLevel + 1);
+    if (scene.hintLevel === 1) showToast("Hint: Light the candle, then cover it with the cup.");
+    if (scene.hintLevel === 2) showToast("Hint: The cup must COVER the candle (it will snap when correct).");
+    if (scene.hintLevel === 3) showToast("Hint: Cup sealed → lower pressure inside → water pushed up into cup.");
+  };
+
+  btnExplain.onclick = () => {
+    scene.showExplain = !scene.showExplain;
+    showToast(scene.showExplain ? "Science explanation ON" : "Science explanation OFF");
+  };
+
+  // Animation loop
+  let last = performance.now();
+  function tick(t){
+    const dt = Math.min(0.033, (t - last)/1000);
+    last = t;
+
+    // flame
+    if (obj.candle.lit && !scene.win && !scene.failed) {
+      obj.candle.flame = Math.min(1, obj.candle.flame + dt*1.2);
+    } else {
+      obj.candle.flame = Math.max(0, obj.candle.flame - dt*1.6);
+    }
+
+    const active = obj.candle.lit && obj.cup.sealed && !scene.win && !scene.failed;
+
+    if (active){
+      // ✅ Requested behavior:
+      // plate drains completely, cup ends half full
+      scene.water.target = 0.0;
+      scene.cupWater.target = 1.0;
+      scene.step = Math.max(scene.step, 4);
+    } else {
+      if (!scene.win && !scene.failed){
+        // baseline: full plate, empty cup
+        scene.water.target = 1.0;
+        scene.cupWater.target = 0.0;
+      }
+    }
+
+    // smooth + clamp (IMPORTANT)
+    const ease = (cur, target, k)=> cur + (target-cur) * (1 - Math.exp(-k*dt));
+    scene.water.level = clamp(ease(scene.water.level, scene.water.target, 2.2), 0, 1);
+    scene.cupWater.level = clamp(ease(scene.cupWater.level, scene.cupWater.target, 2.2), 0, 1);
+
+    // coin becomes pickable once plate is basically empty
+    obj.coin.pickable = (scene.water.level <= 0.03) && obj.cup.sealed && !scene.failed && !scene.win;
+
+    statusEl.textContent = scene.win ? "WIN ✅" : scene.failed ? "FAILED ❌" : active ? "Experiment running" : "Setup";
+    coinStateEl.textContent = obj.coin.pickable ? "Dry (click it!)" : "Wet";
+    candleStateEl.textContent = (obj.candle.lit ? "Lit" : "Unlit");
+    cupStateEl.textContent = obj.cup.sealed ? "Covering & sealed" : "Not covering";
+
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function render(){
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // vignette
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    // plate
+    const P = scene.plate;
+    ctx.save();
+    ctx.translate(P.x, P.y);
+
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(0, P.r*0.64, P.r*0.90, P.r*0.26, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 2;
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.beginPath();
+    ctx.ellipse(0,0,P.r, P.r*0.55, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.beginPath();
+    ctx.ellipse(0,0,P.innerR, P.innerR*0.50, 0, 0, Math.PI*2);
+    ctx.stroke();
+
+    // ✅ plate water: draw ONLY if there's any left
+    const waterLevel = scene.water.level; // 0..1
+    if (waterLevel > 0.02){
+      const wy = 8 + (1-waterLevel)*18;
+      const wR = P.innerR * (0.98 - (1-waterLevel)*0.08);
+      const wRy = (P.innerR*0.50) * (0.98 - (1-waterLevel)*0.30);
+
+      ctx.globalAlpha = 0.55 + waterLevel*0.20;
+      ctx.fillStyle = "rgba(90,170,255,0.32)";
+      ctx.beginPath();
+      ctx.ellipse(0, wy, wR, wRy, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.18 + waterLevel*0.12;
+      ctx.strokeStyle = "rgba(180,220,255,0.45)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(-wR*0.10, wy-6, wR*0.70, wRy*0.70, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    drawCoin();
+    drawCandle();
+    drawMatch();
+    drawCup();
+    drawOverlayText();
+  }
+
+  function drawCoin(){
+    const c = obj.coin;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+
+    if (!c.pickable){
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = "rgba(90,170,255,0.35)";
+      ctx.beginPath();
+      ctx.arc(0,0,c.r+10,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(255,205,90,0.95)";
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0,0,c.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(0,0,0,0.18)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0,0,c.r*0.62,0,Math.PI*2);
+    ctx.stroke();
+
+    if (c.pickable && !scene.win && !scene.failed){
+      const pulse = (Math.sin(performance.now()/220)+1)/2;
+      ctx.globalAlpha = 0.25 + pulse*0.25;
+      ctx.strokeStyle = "rgba(94,240,163,0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0,0,c.r+8 + pulse*6,0,Math.PI*2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawCandle(){
+    const c = obj.candle;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(0, 10, 18, 8, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(245,245,255,0.92)";
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1.5;
+    const w = c.w, h = c.h;
+    ctx.beginPath();
+    ctx.roundRect(-w/2, -h, w, h, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(0,0,0,0.55)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -h);
+    ctx.lineTo(0, -h-8);
+    ctx.stroke();
+
+    if (c.flame > 0.02){
+      const jitter = Math.sin(performance.now()/90)*1.2;
+      ctx.globalAlpha = 0.85 * c.flame;
+      ctx.fillStyle = "rgba(255,180,60,0.95)";
+      ctx.beginPath();
+      ctx.ellipse(0 + jitter*0.2, -h-16, 7, 12, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.55 * c.flame;
+      ctx.fillStyle = "rgba(255,90,60,0.85)";
+      ctx.beginPath();
+      ctx.ellipse(0, -h-14, 4, 7, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(233,238,252,0.75)";
+    ctx.font = "12px system-ui";
+    ctx.fillText("Candle", -18, 24);
+
+    ctx.restore();
+  }
+
+  function drawMatch(){
+    const m = obj.match;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+
+    ctx.globalAlpha = m.used ? 0.45 : 1;
+
+    ctx.fillStyle = "rgba(215,175,120,0.92)";
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(-m.w/2, -m.h/2, m.w, m.h, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.globalAlpha = m.used ? 0.25 : 1;
+    ctx.fillStyle = "rgba(255,90,90,0.95)";
+    ctx.beginPath();
+    ctx.arc(m.w/2 - 8, 0, 7, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(233,238,252,0.75)";
+    ctx.font = "12px system-ui";
+    ctx.fillText("Match", -18, 22);
+
+    ctx.restore();
+  }
+
+  function drawCup(){
+    const c = obj.cup;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(0, 10, c.w*0.40, 10, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    const w = c.w, h = c.h;
+    const topY = -h;
+
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = "rgba(200,230,255,0.25)";
+    ctx.lineWidth = 2;
+    ctx.fillStyle = "rgba(180,220,255,0.06)";
+    ctx.beginPath();
+    ctx.moveTo(-w*0.50, 0);
+    ctx.lineTo(-w*0.40, topY);
+    ctx.quadraticCurveTo(0, topY-6, w*0.40, topY);
+    ctx.lineTo(w*0.50, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+// ✅ Water inside cup (0..1) — starts at the cup bottom INSIDE, and 0.5 = half the cup
+const inLevel = scene.cupWater.level;
+if (inLevel > 0.02){
+
+  // Define the inside bottom and inside top of the cup interior
+  // (a little above the rim and a little below the top)
+  const innerBottomY = -h * 0.02;   // just inside the bottom rim
+  const innerTopY    = -h * 0.92;   // near the top inside
+
+  // Water surface: 0 => at innerBottom, 1 => at innerTop
+  const waterY = innerBottomY - (innerBottomY - innerTopY) * inLevel;
+
+  // Width shrinks slightly toward the top (matches cup shape)
+  const t = (innerBottomY - waterY) / (innerBottomY - innerTopY); // 0..1
+  const halfBottom = w * 0.44;
+  const halfTop    = w * 0.32;
+  const halfAtY    = halfBottom + (halfTop - halfBottom) * t;
+
+  ctx.globalAlpha = 0.40;
+  ctx.fillStyle = "rgba(90,170,255,0.30)";
+  ctx.beginPath();
+  // Fill only INSIDE the cup (from innerBottom up to waterY)
+  ctx.moveTo(-halfBottom, innerBottomY);
+  ctx.lineTo(-halfAtY, waterY);
+  ctx.lineTo( halfAtY, waterY);
+  ctx.lineTo( halfBottom, innerBottomY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Water surface highlight
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = "rgba(180,220,255,0.45)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-halfAtY, waterY);
+  ctx.lineTo( halfAtY, waterY);
+  ctx.stroke();
+}
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "rgba(233,238,252,0.75)";
+    ctx.font = "12px system-ui";
+    ctx.fillText(c.sealed ? "Cup (sealed)" : "Cup", -26, 22);
+
+    ctx.restore();
+  }
+
+  function drawOverlayText(){
+    ctx.save();
+    ctx.fillStyle = "rgba(233,238,252,0.85)";
+    ctx.font = "600 14px system-ui";
+    const W = canvas.getBoundingClientRect().width;
+
+    if (!scene.win && !scene.failed){
+      if (scene.step === 0){
+        ctx.fillText("Drag the candle near the coin.", 18, 28);
+      } else if (scene.step === 1){
+        ctx.fillText("Light the candle: drag the match head to the wick.", 18, 28);
+      } else if (scene.step === 2){
+        ctx.fillText("Cover the candle with the cup (it will snap).", 18, 28);
+      } else if (scene.step >= 3 && !obj.coin.pickable){
+        ctx.fillText("Wait… water is moving into the cup (half full).", 18, 28);
+      } else if (obj.coin.pickable){
+        ctx.fillStyle = "rgba(94,240,163,0.95)";
+        ctx.fillText("Plate is empty — click the coin to pick it up!", 18, 28);
+      }
+    }
+
+    if (scene.showExplain){
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "rgba(15,20,34,0.82)";
+      ctx.strokeStyle = "rgba(122,170,255,0.25)";
+      ctx.lineWidth = 1;
+      const x=18, y=48, w=Math.min(520, W-36), h=118;
+      ctx.beginPath();
+      ctx.roundRect(x,y,w,h,14);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = "rgba(233,238,252,0.92)";
+      ctx.font = "600 13px system-ui";
+      ctx.fillText("Why does the water rise inside the cup?", x+12, y+24);
+
+      ctx.font = "13px system-ui";
+      ctx.fillStyle = "rgba(233,238,252,0.82)";
+      const lines = [
+        "1) Flame heats the trapped air, then it cools after oxygen drops.",
+        "2) Cooler air → lower pressure inside the cup.",
+        "3) Outside air pressure pushes water into the cup.",
+        "Result: plate drains, coin becomes dry."
+      ];
+      lines.forEach((ln,i)=>ctx.fillText(ln, x+12, y+48+i*18));
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // roundRect helper
+  if (!CanvasRenderingContext2D.prototype.roundRect){
+    CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+      r = Math.min(r, w/2, h/2);
+      this.beginPath();
+      this.moveTo(x+r,y);
+      this.arcTo(x+w,y, x+w,y+h, r);
+      this.arcTo(x+w,y+h, x,y+h, r);
+      this.arcTo(x,y+h, x,y, r);
+      this.arcTo(x,y, x+w,y, r);
+      this.closePath();
+      return this;
+    };
+  }
+
+  // Start
+  resize();
+  layout();
+  showToast("Drag items. Solve the puzzle!");
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
