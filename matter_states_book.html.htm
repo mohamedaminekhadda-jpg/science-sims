@@ -7,7 +7,18 @@
   <style>
     :root { --bg:#0b0d12; --panel:#121621; --text:#e9eefc; --muted:#9aa7c2; --accent:#7aaaff; }
     html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font:14px system-ui,Segoe UI,Roboto,Arial;}
-    #wrap{display:grid; grid-template-columns: 360px 1fr; gap:14px; height:100%; padding:14px; box-sizing:border-box;}
+    #wrap{
+  display:grid;
+  grid-template-columns: 360px 1fr;
+  gap:14px;
+  min-height:700px;   /* good for iframe */
+  height:100%;
+  padding:14px;
+  box-sizing:border-box;
+}
+@media (max-width: 900px){
+  #wrap{ grid-template-columns: 1fr; }
+}
     .card{background:rgba(18,22,33,.92); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px;}
     h1{font-size:16px; margin:0 0 6px;}
     h2{font-size:13px; margin:12px 0 6px; color:rgba(233,238,252,.9)}
@@ -433,3 +444,4 @@
 </script>
 </body>
 </html>
+
