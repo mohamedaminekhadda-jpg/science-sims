@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>States of Matter — Digital Textbook Simulation</title>
+  <style>
+    :root { --bg:#0b0d12; --panel:#121621; --text:#e9eefc; --muted:#9aa7c2; --accent:#7aaaff; }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font:14px system-ui,Segoe UI,Roboto,Arial;}
+    #wrap{display:grid; grid-template-columns: 360px 1fr; gap:14px; height:100%; padding:14px; box-sizing:border-box;}
+    .card{background:rgba(18,22,33,.92); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px;}
+    h1{font-size:16px; margin:0 0 6px;}
+    h2{font-size:13px; margin:12px 0 6px; color:rgba(233,238,252,.9)}
+    .muted{color:var(--muted);}
+    label{display:block; margin:10px 0 6px;}
+    input[type="range"]{width:100%;}
+    select{
+      width:100%; background:#0f1422; color:var(--text);
+      border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px;
+    }
+    .row{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+    button{
+      background:#1b2233; color:var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      padding:8px 10px; border-radius:10px; cursor:pointer;
+    }
+    button:hover{filter:brightness(1.1)}
+    #hud{display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px;}
+    .stat{padding:8px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06);}
+    .big{font-size:16px;}
+    .pill{display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05)}
+    .callout{
+      margin-top:10px; padding:10px; border-radius:12px;
+      border:1px solid rgba(122,170,255,.25);
+      background:linear-gradient(180deg, rgba(122,170,255,.10), rgba(122,170,255,.04));
+      line-height:1.45;
+    }
+    ul{margin:8px 0 0 18px; padding:0;}
+    li{margin:6px 0;}
+    canvas{width:100%; height:100%; display:block; border-radius:14px; background:radial-gradient(1200px 600px at 30% 20%, rgba(97,141,255,.12), transparent 60%);}
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <div class="card">
+    <h1>States of Matter — Interactive Model</h1>
+    <div class="muted">
+      Move the sliders. Watch how particles move. Use it to understand <span class="pill">Temperature</span>,
+      <span class="pill">Volume</span>, and <span class="pill">Pressure</span>.
+    </div>
+
+    <h2>Controls</h2>
+
+    <label>Gas type <span id="gHint" class="muted"></span></label>
+    <select id="gas">
+      <option value="helium">Helium (light, weak attraction)</option>
+      <option value="nitrogen" selected>Nitrogen (medium)</option>
+      <option value="co2">CO₂ (heavier, more attraction)</option>
+      <option value="water">Water vapor (very “condensable”)</option>
+    </select>
+
+    <label>Temperature <span id="tVal" class="muted"></span></label>
+    <input id="temp" type="range" min="0" max="200" value="70" />
+
+    <label>Container size (Volume) <span id="vVal" class="muted"></span></label>
+    <input id="vol" type="range" min="60" max="100" value="90" />
+
+    <label>Pressure (amount of gas inside) <span id="pVal" class="muted"></span></label>
+    <input id="press" type="range" min="0" max="200" value="100" />
+
+    <div class="row">
+      <button id="presetSolid">Solid preset</button>
+      <button id="presetLiquid">Liquid preset</button>
+      <button id="presetGas">Gas preset</button>
+      <button id="reset">Reset</button>
+      <button id="pause">Pause</button>
+    </div>
+
+    <h2>Readout</h2>
+    <div id="hud">
+      <div class="stat">
+        <div class="muted">Estimated state</div>
+        <div id="phase" class="big">—</div>
+      </div>
+      <div class="stat">
+        <div class="muted">Estimated pressure</div>
+        <div id="pEst" class="big">—</div>
+      </div>
+      <div class="stat">
+        <div class="muted">Avg speed</div>
+        <div id="speed" class="big">—</div>
+      </div>
+      <div class="stat">
+        <div class="muted">Density (particles / area)</div>
+        <div id="dens" class="big">—</div>
+      </div>
+    </div>
+
+    <div id="lesson" class="callout">
+      <div style="font-weight:600; margin-bottom:6px;">What this explains</div>
+      <div id="lessonText" class="muted"></div>
+      <ul id="bullets"></ul>
+    </div>
+
+    <div class="muted" style="margin-top:10px">
+      Teacher note: this is a simplified model. It’s designed to make the concepts clear, not to be a lab-grade simulator.
+    </div>
+  </div>
+
+  <div class="card" style="padding:10px;">
+    <canvas id="c"></canvas>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  const ui = {
+    gas: document.getElementById('gas'),
+    temp: document.getElementById('temp'),
+    vol: document.getElementById('vol'),
+    press: document.getElementById('press'),
+    gHint: document.getElementById('gHint'),
+    tVal: document.getElementById('tVal'),
+    vVal: document.getElementById('vVal'),
+    pVal: document.getElementById('pVal'),
+    phase: document.getElementById('phase'),
+    pEst: document.getElementById('pEst'),
+    speed: document.getElementById('speed'),
+    dens: document.getElementById('dens'),
+    lessonText: document.getElementById('lessonText'),
+    bullets: document.getElementById('bullets'),
+    presetSolid: document.getElementById('presetSolid'),
+    presetLiquid: document.getElementById('presetLiquid'),
+    presetGas: document.getElementById('presetGas'),
+    reset: document.getElementById('reset'),
+    pause: document.getElementById('pause'),
+  };
+
+  function resize() {
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+
+  // Gas “profiles” (qualitative, for teaching)
+  // mass affects inertia; cohesion affects attraction / condensation tendency.
+  const GAS = {
+    helium:   { name:"Helium",    mass:0.5, cohesion:0.15, hint:"(hard to liquefy)" },
+    nitrogen: { name:"Nitrogen",  mass:1.0, cohesion:0.35, hint:"(typical gas)" },
+    co2:      { name:"CO₂",       mass:1.6, cohesion:0.55, hint:"(more condensable)" },
+    water:    { name:"Water vapor",mass:1.2, cohesion:0.85, hint:"(very condensable)" },
+  };
+
+  // Simulation
+  const R = 4.2;
+  const repelDist = 10;
+  const attractDistBase = 26;
+  const damping = 0.986;
+
+  let paused = false;
+  let particles = [];
+  let targetN = 140;
+
+  function containerBox() {
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+    const vol = +ui.vol.value / 100; // 0.60..1.00
+    const padX = (1 - vol) * W * 0.5 + 22;
+    const padY = (1 - vol) * H * 0.5 + 22;
+    return { x: padX, y: padY, w: W - padX*2, h: H - padY*2 };
+  }
+
+  function initParticles(N) {
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+    const box = containerBox();
+    particles = [];
+    for (let i=0;i<N;i++){
+      particles.push({
+        x: rand(box.x + box.w*0.25, box.x + box.w*0.75),
+        y: rand(box.y + box.h*0.25, box.y + box.h*0.75),
+        vx: rand(-0.35, 0.35),
+        vy: rand(-0.35, 0.35),
+      });
+    }
+  }
+
+  function adjustParticleCount() {
+    // Pressure slider controls "amount of gas" -> number of particles
+    // 0..200 -> ~60..260
+    const p = +ui.press.value;
+    targetN = Math.round(60 + (p/200) * 200);
+
+    // Smoothly add/remove particles toward target
+    const box = containerBox();
+    while (particles.length < targetN) {
+      particles.push({
+        x: rand(box.x + box.w*0.35, box.x + box.w*0.65),
+        y: rand(box.y + box.h*0.35, box.y + box.h*0.65),
+        vx: rand(-0.2, 0.2),
+        vy: rand(-0.2, 0.2),
+      });
+    }
+    while (particles.length > targetN) particles.pop();
+  }
+
+  function drawBox(box){
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(box.x, box.y, box.w, box.h);
+    ctx.restore();
+  }
+
+  function phaseHeuristic(T, density, cohesion, avgSpeed) {
+    // A teaching heuristic:
+    // - Higher cohesion + high density + low temp -> solid
+    // - cohesion + medium temp -> liquid
+    // - low density or high temp -> gas
+    // This is not a real phase diagram; it’s meant to explain the ideas.
+    const condense = cohesion * density * (1 - T/220);
+    if (condense > 0.55 && avgSpeed < 1.0) return "Solid";
+    if (condense > 0.25) return "Liquid";
+    return "Gas";
+  }
+
+  function setLesson(phase, T, V, P, gasName) {
+    ui.bullets.innerHTML = "";
+    const add = (s) => {
+      const li = document.createElement("li");
+      li.textContent = s;
+      ui.bullets.appendChild(li);
+    };
+
+    // Core concept explanations (student-facing)
+    if (phase === "Gas") {
+      ui.lessonText.textContent =
+        `${gasName} is behaving like a GAS here. Gas particles are far apart and move freely.`;
+      add("Temperature ↑ → particles move faster (more kinetic energy).");
+      add("Volume ↓ (smaller container) → collisions with walls ↑ → pressure ↑.");
+      add("More gas (pressure slider ↑) → more particles in same space → pressure ↑.");
+      add("Gas is compressible: you can squeeze it into a smaller volume.");
+    } else if (phase === "Liquid") {
+      ui.lessonText.textContent =
+        `${gasName} is behaving like a LIQUID here. Particles stay close together but can slide past each other.`;
+      add("Particles are close → stronger attraction compared to gas.");
+      add("Liquids flow: shape changes, but they do not expand to fill the whole container like gas.");
+      add("Heating usually pushes liquid toward gas (evaporation).");
+      add("Compressing can push gas toward liquid (condensation).");
+    } else {
+      ui.lessonText.textContent =
+        `${gasName} is behaving like a SOLID here. Particles are packed and mostly vibrate in place.`;
+      add("Strong attraction + low temperature keeps particles locked in place.");
+      add("Solids keep their shape (they don’t flow like liquids).");
+      add("Heating increases vibration → melting can happen.");
+      add("Pressure can also help particles stay packed together.");
+    }
+
+    // A small “equation idea” without heavy math
+    add("Big idea: Pressure depends on Temperature, Amount of gas, and Volume.");
+  }
+
+  // Main loop
+  let last = performance.now();
+  function tick(t){
+    const dt = Math.min(0.033, (t - last)/1000);
+    last = t;
+
+    const box = containerBox();
+    const V = box.w * box.h;
+
+    const gas = GAS[ui.gas.value];
+    ui.gHint.textContent = gas.hint;
+
+    const T = +ui.temp.value;       // 0..200 (teaching temperature)
+    const press = +ui.press.value;  // 0..200 (amount of gas)
+    ui.tVal.textContent = `(${T})`;
+    ui.vVal.textContent = `(${ui.vol.value}%)`;
+    ui.pVal.textContent = `(${press})`;
+
+    adjustParticleCount();
+
+    // Map temperature -> thermal kicks
+    const thermal = (T * 0.0026) / gas.mass;
+
+    // Cohesion controls attraction strength + range
+    const cohesion = gas.cohesion;
+    const attractDist = attractDistBase + cohesion * 10;
+
+    // Forces
+    const attractK = cohesion * 0.00016; // stronger for condensable gases
+    const repelK = 0.0010;
+
+    if (!paused) {
+      // Pairwise interactions (ok for this size)
+      for (let i=0;i<particles.length;i++){
+        const p = particles[i];
+
+        // Thermal motion
+        p.vx += rand(-thermal, thermal);
+        p.vy += rand(-thermal, thermal);
+
+        for (let j=i+1;j<particles.length;j++){
+          const q = particles[j];
+          let dx = q.x - p.x;
+          let dy = q.y - p.y;
+          const d2 = dx*dx + dy*dy;
+          if (d2 < 0.0001) continue;
+          const d = Math.sqrt(d2);
+
+          // Repulsion (prevents overlap)
+          if (d < repelDist) {
+            const f = (repelDist - d) * repelK;
+            const nx = dx / d, ny = dy / d;
+            p.vx -= nx * f; p.vy -= ny * f;
+            q.vx += nx * f; q.vy += ny * f;
+          }
+
+          // Attraction (creates liquids/solids when cool & dense)
+          if (d > repelDist && d < attractDist) {
+            // attraction weakens when hot
+            const tempFactor = Math.max(0, 1 - T/220);
+            const f = (d - repelDist) * attractK * tempFactor;
+            const nx = dx / d, ny = dy / d;
+            p.vx += nx * f; p.vy += ny * f;
+            q.vx -= nx * f; q.vy -= ny * f;
+          }
+        }
+      }
+
+      // Integrate + walls
+      const left = box.x + R, right = box.x + box.w - R;
+      const top  = box.y + R, bottom= box.y + box.h - R;
+
+      for (const p of particles){
+        p.vx *= damping;
+        p.vy *= damping;
+
+        p.x += p.vx * (dt * 60);
+        p.y += p.vy * (dt * 60);
+
+        if (p.x < left){ p.x = left; p.vx = Math.abs(p.vx); }
+        if (p.x > right){ p.x = right; p.vx = -Math.abs(p.vx); }
+        if (p.y < top){ p.y = top; p.vy = Math.abs(p.vy); }
+        if (p.y > bottom){ p.y = bottom; p.vy = -Math.abs(p.vy); }
+      }
+    }
+
+    // Stats
+    let sp = 0;
+    for (const p of particles) sp += Math.hypot(p.vx, p.vy);
+    const avgSpeed = sp / particles.length;
+
+    const density = particles.length / V; // particles per pixel^2 (relative)
+    // Estimated pressure (teaching): proportional to density * temperature * avgSpeed
+    const P = (density * (T+10) * (avgSpeed+0.2)) * 120000;
+
+    ui.speed.textContent = avgSpeed.toFixed(2);
+    ui.dens.textContent = (density * 1e5).toFixed(2) + " (×10⁻⁵)";
+    ui.pEst.textContent = P.toFixed(1) + " (model units)";
+
+    const phase = phaseHeuristic(T, density * 8000, cohesion, avgSpeed); // scaled density for heuristic
+    ui.phase.textContent = phase;
+    setLesson(phase, T, V, P, gas.name);
+
+    // Render
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawBox(box);
+
+    // Draw “bonds” when cohesion high + close (helps students SEE attraction)
+    ctx.save();
+    if (cohesion > 0.45) {
+      ctx.strokeStyle = "rgba(122,170,255,0.22)";
+      ctx.lineWidth = 1;
+      for (let i=0;i<particles.length;i++){
+        for (let j=i+1;j<particles.length;j++){
+          const p = particles[i], q = particles[j];
+          const dx = q.x - p.x, dy = q.y - p.y;
+          const d = Math.hypot(dx,dy);
+          if (d < 18) {
+            const a = Math.max(0, 1 - d/18) * 0.55 * (1 - T/240);
+            if (a > 0.02) {
+              ctx.globalAlpha = a;
+              ctx.beginPath();
+              ctx.moveTo(p.x,p.y);
+              ctx.lineTo(q.x,q.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+    }
+    ctx.restore();
+
+    // Particles
+    ctx.save();
+    ctx.fillStyle = "rgba(233,238,252,0.92)";
+    for (const p of particles){
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, R, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    requestAnimationFrame(tick);
+  }
+
+  // Presets (they set only: gas, T, volume, pressure)
+  ui.presetSolid.onclick = () => { ui.gas.value="water"; ui.temp.value=20; ui.vol.value=70; ui.press.value=170; };
+  ui.presetLiquid.onclick= () => { ui.gas.value="co2";   ui.temp.value=70; ui.vol.value=85; ui.press.value=140; };
+  ui.presetGas.onclick   = () => { ui.gas.value="helium";ui.temp.value=160;ui.vol.value=95; ui.press.value=70;  };
+
+  ui.reset.onclick = () => initParticles(Math.round(60 + (+ui.press.value/200)*200));
+
+  ui.pause.onclick = () => {
+    paused = !paused;
+    ui.pause.textContent = paused ? "Resume" : "Pause";
+  };
+
+  // Init
+  resize();
+  initParticles(Math.round(60 + (+ui.press.value/200)*200));
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
