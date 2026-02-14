@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Nervous System Puzzle — Signal Test</title>
+<style>
+  :root{
+    --bg:#071018;
+    --stroke:rgba(255,255,255,.12);
+    --glass:rgba(255,255,255,.06);
+    --glass2:rgba(255,255,255,.03);
+
+    --text:#eef4ff;
+    --muted:#a8b7d2;
+
+    --accent:#7aaaff;
+    --good:#5ef0a3;
+    --warn:#ffcc66;
+    --bad:#ff6b6b;
+  }
+
+  html,body{height:100%;margin:0;font:15px system-ui,Segoe UI,Roboto,Arial;color:var(--text);}
+  body{
+    background:
+      radial-gradient(1200px 700px at 18% 12%, rgba(122,170,255,.20), transparent 60%),
+      radial-gradient(1100px 700px at 80% 40%, rgba(94,240,163,.12), transparent 60%),
+      radial-gradient(900px 500px at 60% 10%, rgba(255,204,102,.08), transparent 60%),
+      var(--bg);
+  }
+  *{box-sizing:border-box}
+
+  .app{max-width:1240px;margin:0 auto;padding:14px;display:grid;gap:14px}
+  .card{
+    border:1px solid var(--stroke);
+    background:linear-gradient(180deg,var(--glass),var(--glass2));
+    border-radius:18px;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ===== TOP ===== */
+  .top{
+    padding:14px;
+    display:grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap:12px;
+    align-items:stretch;
+  }
+  @media (max-width:980px){ .top{grid-template-columns:1fr;} }
+
+  .brandRow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{
+    width:44px;height:44px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background:
+      radial-gradient(70px 70px at 30% 20%, rgba(122,170,255,.35), transparent 60%),
+      radial-gradient(70px 70px at 70% 70%, rgba(94,240,163,.22), transparent 60%),
+      rgba(255,255,255,.05);
+    display:grid;place-items:center;font-size:22px;
+  }
+  h1{margin:0;font-size:16px}
+  .sub{margin-top:2px;color:var(--muted);font-size:12px}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 10px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.05);
+    color:rgba(238,244,255,.92);
+    font-size:12px;white-space:nowrap;
+  }
+
+  .rightCol{display:grid;gap:10px;align-content:start;}
+  .stats{display:grid;grid-template-columns:1fr;gap:10px;}
+  .stat{
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.04);
+    border-radius:16px;
+    padding:10px;
+  }
+  .k{color:var(--muted);font-size:12px}
+  .v{margin-top:4px;font-weight:950;text-shadow: 0 2px 10px rgba(0,0,0,.35);}
+
+  .buttons{display:flex;gap:15px;flex-wrap:wrap}
+  button{
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.04);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:300px;
+    cursor:pointer;
+    transition: transform .12s ease, filter .12s ease, background .12s ease;
+  }
+  button:hover{filter:brightness(1.06);background:rgba(255,255,255,.06)}
+  button:active{transform:translateY(1px)}
+  .btnAccent{border-color:rgba(122,170,255,.35);background:rgba(122,170,255,.14)}
+  .btnGood{border-color:rgba(94,240,163,.35);background:rgba(94,240,163,.10)}
+
+  /* distinct send button */
+  #btnSend{
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-weight: 950;
+    letter-spacing: .2px;
+    border-color: rgba(255,217,94,.60);
+    background: linear-gradient(180deg, rgba(255,217,94,.22), rgba(122,170,255,.10));
+    box-shadow: 0 16px 40px rgba(0,0,0,.35);
+    position: relative;
+    overflow: hidden;
+  }
+  #btnSend::before{
+    content:"";
+    position:absolute; inset:-40%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,217,94,.35), transparent 55%);
+    transform: rotate(12deg);
+    opacity:.9;
+    pointer-events:none;
+  }
+  #btnSend:hover{ filter: brightness(1.08); transform: translateY(-1px); }
+  #btnSend:active{ transform: translateY(1px); }
+
+  /* ===== MIDDLE (Pathway) ===== */
+  .mid{padding:12px}
+  .scene{
+    position:relative;
+    width:100%;
+    aspect-ratio: 1100 / 520;
+    min-height: 420px;
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,.10);
+    background:
+      radial-gradient(780px 420px at 20% 20%, rgba(255,204,102,.07), transparent 62%),
+      radial-gradient(820px 420px at 80% 70%, rgba(122,170,255,.10), transparent 60%),
+      rgba(255,255,255,.02);
+    .scene{ overflow: visible; } /* allow slots to extend outside */
+  }
+  @media (max-width:520px){ .scene{min-height:460px;} }
+
+  svg.net{position:absolute;inset:0;pointer-events:none;opacity:.98; z-index:1;}
+  canvas#fx{position:absolute; inset:0; pointer-events:none; z-index:2;}
+  .slot{z-index:3;}
+
+  .slot{
+    position:absolute;
+    width: clamp(180px, 1%, 1px);
+    padding:12px 12px 12px 12px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    box-shadow: 0 18px 55px rgba(0,0,0,.35);
+    display:flex;gap:12px;align-items:center;
+    backdrop-filter: blur(10px);
+    outline: 2px dashed rgba(255,255,255,.14);
+    outline-offset: -10px;
+
+    left: calc(var(--x, 50) * 1%);
+    top:  calc(var(--y, 50) * 1%);
+    transform: translate(-50%, -50%);
+  }
+  .slot:hover{border-color:rgba(122,170,255,.30);outline-color:rgba(122,170,255,.20)}
+  .slot.drop{border-color:rgba(122,170,255,.60);outline-color:rgba(122,170,255,.35)}
+  .slot.ok{border-color:rgba(94,240,163,.55);outline-color:rgba(94,240,163,.25)}
+  .slot.fail{border-color:rgba(255,107,107,.60);outline-color:rgba(255,107,107,.30)}
+
+  @keyframes pop{0%{transform:translate(-50%,-50%) scale(1)}35%{transform:translate(-50%,-52%) scale(1.03)}100%{transform:translate(-50%,-50%) scale(1)}}
+  .slot.pop{animation: pop .24s ease-out 1;}
+
+  .badge{
+    width:52px;height:52px;border-radius:18px;
+    border:1px solid rgba(255,255,255,.14);
+    background:
+      radial-gradient(28px 28px at 30% 30%, rgba(255,255,255,.16), transparent 60%),
+      radial-gradient(32px 32px at 70% 80%, rgba(122,170,255,.18), transparent 60%),
+      rgba(255,255,255,.05);
+    display:grid;place-items:center;
+    font-size:24px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.28);
+    flex:0 0 auto;
+  }
+  .meta{display:grid;gap:3px;min-width:0}
+  .label{font-size:12px;color:var(--muted)}
+  .value{
+    font-weight:950;font-size:10px;
+    color:rgba(238,244,255,.96);
+    text-shadow: 0 2px 10px rgba(0,0,0,.40);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+
+  .slotX{
+    position:absolute; inset:0;
+    display:grid; place-items:center;
+    font-size:72px; font-weight:1000;
+    color:rgba(255,107,107,.90);
+    text-shadow: 0 12px 40px rgba(0,0,0,.55);
+    opacity:0; pointer-events:none;
+    transform: scale(.95);
+    transition: opacity .16s ease, transform .16s ease;
+  }
+  .slot.showX .slotX{opacity:1; transform: scale(1);}
+
+  @keyframes shake{
+    0%{transform:translate(-50%,-50%)}
+    20%{transform:translate(calc(-50% - 6px),-50%)}
+    40%{transform:translate(calc(-50% + 6px),-50%)}
+    60%{transform:translate(calc(-50% - 4px),-50%)}
+    80%{transform:translate(calc(-50% + 4px),-50%)}
+    100%{transform:translate(-50%,-50%)}
+  }
+  .slot.shake{animation: shake .38s ease-out 1;}
+
+  /* ===== BOTTOM (Pieces) ===== */
+  .bottom{padding:12px}
+  .trayTop{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .trayTitle{font-weight:950}
+  .pieces{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:10px;
+  }
+  @media (max-width:820px){ .pieces{grid-template-columns:1fr 1fr} }
+  @media (max-width:560px){ .pieces{grid-template-columns:1fr} }
+
+  .piece{
+    border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    border-radius:16px;
+    padding:10px;
+    cursor:grab;
+    user-select:none;
+    display:flex;gap:10px;align-items:center;
+    transition: transform .12s ease, border-color .12s ease, filter .12s ease;
+  }
+  .piece:hover{transform:translateY(-1px);border-color:rgba(122,170,255,.25);filter:brightness(1.03)}
+  .piece:active{cursor:grabbing}
+  .piece.selected{
+    border-color: rgba(255,217,94,.45);
+    background: linear-gradient(180deg, rgba(255,217,94,.12), rgba(255,255,255,.03));
+  }
+  .pIcon{
+    width:44px;height:44px;border-radius:16px;
+    border:1px solid rgba(255,255,255,.14);
+    background:
+      radial-gradient(22px 22px at 30% 30%, rgba(255,255,255,.14), transparent 60%),
+      rgba(255,255,255,.05);
+    display:grid;place-items:center;
+    font-size:22px;
+    flex:0 0 auto;
+  }
+  .pText{display:grid;gap:2px;min-width:0}
+  .pName{font-weight:950}
+  .pHint{font-size:12px;color:var(--muted);line-height:1.25}
+
+  .toast{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    padding:10px 14px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(10,16,30,.92);
+    color:var(--text);
+    box-shadow:0 14px 36px rgba(0,0,0,.35);
+    opacity:0;pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+    max-width:min(860px, calc(100vw - 30px));
+    text-align:center; z-index:30;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+  /* Clip ONLY the network + glow inside the rounded scene */
+.viz{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  border-radius:16px;
+  z-index:1;
+}
+svg.net{ position:absolute; inset:0; pointer-events:none; opacity:.98; }
+canvas#fx{ position:absolute; inset:0; pointer-events:none; }
+.slot{ z-index:3; } /* keep slots above the visuals */
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="card top">
+    <div>
+      <div class="brandRow">
+        <div class="brand">
+          <div class="logo">🧠</div>
+          <div>
+            <h1 id="sceneTitle">Nervous System Pathway 🧠⚡</h1>
+            <div class="sub" id="sceneGoal">Match a valid stimulus + receptor, then complete the pathway.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rightCol">
+      <div class="brandRow" style="justify-content:flex-end;">
+        <span class="pill" id="modePill">⚡ Mode: Reflex</span>
+        <span class="pill" id="progressPill">0 / 5 placed</span>
+        <span class="pill" id="mistakesPill">❌ Mistakes: 0</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Status</div>
+          <div class="v" id="status">Build your pathway</div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="btnAccent" id="btnReflex">⚡ Reflex</button>
+        <button class="btnAccent" id="btnBrain">🧠 Brain</button>
+        <button id="btnReset">🔁 Reset</button>
+        <button class="btnGood" id="btnSend">🚀 Send Signal</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mid">
+    <div class="scene" id="scene">
+    <div class="viz">
+      <canvas id="fx"></canvas>
+
+      <svg class="net" viewBox="0 0 1100 520" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="2.6" result="b"/>
+            <feColorMatrix in="b" type="matrix"
+              values="1 0 0 0 0
+                      0 1 0 0 0
+                      0 0 1 0 0
+                      0 0 0 0.55 0" result="g"/>
+            <feMerge>
+              <feMergeNode in="g"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <linearGradient id="axon" x1="0" x2="1">
+            <stop offset="0" stop-color="rgba(122,170,255,.24)"/>
+            <stop offset="0.55" stop-color="rgba(94,240,163,.18)"/>
+            <stop offset="1" stop-color="rgba(255,204,102,.14)"/>
+          </linearGradient>
+        </defs>
+
+        <path id="masterPath"
+          d="M 140 300
+             C 250 120, 380 120, 500 290
+             S 720 470, 820 390
+             S 980 250, 1060 230"
+          fill="none" stroke="url(#axon)" stroke-width="18" stroke-linecap="round" filter="url(#glow)" opacity=".18"/>
+
+        <path
+          d="M 140 300
+             C 250 120, 380 120, 500 290
+             S 720 470, 820 390
+             S 980 250, 1060 230"
+          fill="none" stroke="rgba(238,244,255,.22)" stroke-width="4" stroke-linecap="round" opacity=".14"/>
+
+        <g opacity="0.65">
+          <path d="M260 190 C 230 130, 190 125, 150 150" fill="none" stroke="rgba(122,170,255,.14)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M300 225 C 260 255, 220 272, 175 280" fill="none" stroke="rgba(122,170,255,.11)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M900 290 C 960 260, 1010 250, 1060 270" fill="none" stroke="rgba(255,204,102,.11)" stroke-width="2.7" stroke-linecap="round"/>
+        </g>
+
+        <g id="nodes" filter="url(#glow)">
+          <circle data-node="stimulus" cx="140" cy="300" r="7" fill="rgba(122,170,255,.40)"/>
+          <circle data-node="receptor" cx="330" cy="155" r="7" fill="rgba(238,244,255,.20)"/>
+          <circle data-node="sensory"  cx="500" cy="290" r="7" fill="rgba(238,244,255,.18)"/>
+          <circle data-node="cns"      cx="820" cy="390" r="7" fill="rgba(94,240,163,.32)"/>
+          <circle data-node="effector" cx="1000" cy="230" r="7" fill="rgba(255,204,102,.32)"/>
+        </g>
+      </svg>
+      </div>
+
+      <div class="slot" data-slot="stimulus">
+        <div class="badge" id="badgeStim">⚡</div>
+        <div class="meta">
+          <div class="label">1) Stimulus</div>
+          <div class="value" id="slotStimText">Drop a piece here</div>
+        </div>
+        <div class="slotX">✖</div>
+      </div>
+
+      <div class="slot" data-slot="receptor">
+        <div class="badge" id="badgeReceptor">🧤</div>
+        <div class="meta">
+          <div class="label">2) Receptor</div>
+          <div class="value" id="slotReceptorText">Drop a piece here</div>
+        </div>
+        <div class="slotX">✖</div>
+      </div>
+
+      <div class="slot" data-slot="sensory">
+        <div class="badge">🧬</div>
+        <div class="meta">
+          <div class="label">3) Sensory neuron</div>
+          <div class="value" id="slotSensoryText">Drop a piece here</div>
+        </div>
+        <div class="slotX">✖</div>
+      </div>
+
+      <div class="slot" data-slot="cns">
+        <div class="badge" id="badgeCns">🧷</div>
+        <div class="meta">
+          <div class="label" id="labelCns">4) CNS (spinal cord)</div>
+          <div class="value" id="slotCnsText">Drop a piece here</div>
+        </div>
+        <div class="slotX">✖</div>
+      </div>
+
+      <div class="slot" data-slot="effector">
+        <div class="badge">💪</div>
+        <div class="meta">
+          <div class="label">5) Muscle</div>
+          <div class="value" id="slotEffectorText">Drop a piece here</div>
+        </div>
+        <div class="slotX">✖</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bottom">
+    <div class="trayTop">
+      <div class="trayTitle">Pieces</div>
+      <span class="pill" id="selectedPill">🧩 Selected: none</span>
+    </div>
+    <div class="pieces" id="pieces"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (id)=>document.getElementById(id);
+
+  const el = {
+    toast: $("toast"),
+    modePill: $("modePill"),
+    progressPill: $("progressPill"),
+    mistakesPill: $("mistakesPill"),
+    status: $("status"),
+    btnReflex: $("btnReflex"),
+    btnBrain: $("btnBrain"),
+    btnReset: $("btnReset"),
+    btnSend: $("btnSend"),
+    selectedPill: $("selectedPill"),
+
+    labelCns: $("labelCns"),
+    badgeStim: $("badgeStim"),
+    badgeReceptor: $("badgeReceptor"),
+    badgeCns: $("badgeCns"),
+
+    slotText: {
+      stimulus: $("slotStimText"),
+      receptor: $("slotReceptorText"),
+      sensory: $("slotSensoryText"),
+      cns: $("slotCnsText"),
+      effector: $("slotEffectorText"),
+    },
+    slots: Array.from(document.querySelectorAll(".slot")),
+    piecesWrap: $("pieces"),
+
+    scene: $("scene"),
+    fx: document.getElementById("fx"),
+    masterPath: document.getElementById("masterPath"),
+    nodesGroup: document.getElementById("nodes"),
+  };
+
+  function toast(msg, ms=1600){
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>el.toast.classList.remove("show"), ms);
+  }
+  function haptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){} }
+  function shakeSlot(slotEl){
+    slotEl.classList.remove("shake");
+    slotEl.getBoundingClientRect();
+    slotEl.classList.add("shake");
+  }
+
+  const PIECES = [
+    {id:"stim_fire",   emoji:"🔥", name:"Heat (fire)",          hint:"Valid with skin.", role:"stimulus"},
+    {id:"stim_needle", emoji:"🪡", name:"Sharp pain (needle)",  hint:"Valid with skin.", role:"stimulus"},
+    {id:"stim_light",  emoji:"💡", name:"Bright light",         hint:"Valid with eyes.", role:"stimulus"},
+
+    {id:"rec_skin", emoji:"🖐️", name:"Skin receptors", hint:"Detect heat/pain/touch.", role:"receptor"},
+    {id:"rec_eye",  emoji:"👁️", name:"Eye receptors",  hint:"Detect light.",          role:"receptor"},
+
+    {id:"sensory",  emoji:"🧬", name:"Sensory neuron", hint:"Carries signal to CNS.", role:"sensory"},
+    {id:"spinal",   emoji:"🧷", name:"Spinal cord",    hint:"Fast reflex center.",    role:"cns"},
+    {id:"brain",    emoji:"🧠", name:"Brain",          hint:"Thinking center.",       role:"cns"},
+    {id:"effector", emoji:"💪", name:"Muscle",         hint:"Creates the response.",  role:"effector"},
+
+    {id:"motor", emoji:"⚡", name:"Motor neuron",  hint:"Distractor in this puzzle.", role:"distractor"},
+    {id:"blood", emoji:"🩸", name:"Blood vessel",  hint:"Not a nerve pathway.",       role:"distractor"},
+    {id:"heart", emoji:"🫀", name:"Heart",         hint:"Not part of reflex arc.",    role:"distractor"},
+    {id:"lung",  emoji:"🫁", name:"Lungs",         hint:"Not part of this pathway.",  role:"distractor"},
+  ];
+
+  const ORDER = ["stimulus","receptor","sensory","cns","effector"];
+
+  const state = {
+    mode: "reflex",
+    mistakes: 0,
+    running: false,
+    selectedPiece: null,
+    placed: { stimulus:null,receptor:null,sensory:null,cns:null,effector:null },
+    nodeLen: { stimulus:0,receptor:0,sensory:0,cns:0,effector:0 },
+    pathTotal: 1
+  };
+
+  function placedCount(){ return ORDER.filter(k => state.placed[k]).length; }
+  function updateHUD(){
+    el.progressPill.textContent = `${placedCount()} / 5 placed`;
+    el.mistakesPill.textContent = `❌ Mistakes: ${state.mistakes}`;
+  }
+  function clearSlotMarks(){
+    el.slots.forEach(s=>s.classList.remove("ok","fail","showX","drop","shake","pop"));
+  }
+  function pieceById(id){ return PIECES.find(p=>p.id===id); }
+
+  /* ===== slot positioning from SVG nodes ===== */
+  function placeSlotsFromSvgNodes(){
+    const circles = Array.from(el.nodesGroup.querySelectorAll("circle[data-node]"));
+    circles.forEach(c=>{
+      const key = c.getAttribute("data-node");
+      const x = parseFloat(c.getAttribute("cx"));
+      const y = parseFloat(c.getAttribute("cy"));
+      const xp = (x/1100)*100;
+      const yp = (y/520)*100;
+      const slotEl = document.querySelector(`.slot[data-slot="${key}"]`);
+      if(slotEl){
+        slotEl.style.setProperty("--x", xp.toFixed(3));
+        slotEl.style.setProperty("--y", yp.toFixed(3));
+      }
+    });
+  }
+
+  /* ===== CLEAN GLOW CANVAS (this is the important fix) ===== */
+  const fxCtx = el.fx.getContext("2d", { alpha:true });
+  let fxDpr = 1, fxW = 0, fxH = 0;
+
+  function resizeFx(){
+    const r = el.scene.getBoundingClientRect();
+    fxDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    fxW = Math.max(1, Math.floor(r.width));
+    fxH = Math.max(1, Math.floor(r.height));
+    el.fx.width  = Math.floor(fxW * fxDpr);
+    el.fx.height = Math.floor(fxH * fxDpr);
+    fxCtx.setTransform(fxDpr,0,0,fxDpr,0,0); // draw in CSS px
+    fxCtx.clearRect(0,0,fxW,fxH);
+  }
+
+  function clearFx(){
+    fxCtx.setTransform(fxDpr,0,0,fxDpr,0,0);
+    fxCtx.clearRect(0,0,fxW,fxH);
+  }
+
+  function drawGlowDot(viewX, viewY, strength=1){
+    // viewBox coords -> CSS px
+    const x = (viewX / 1100) * fxW;
+    const y = (viewY / 520)  * fxH;
+
+    fxCtx.save();
+    fxCtx.globalCompositeOperation = "lighter";
+
+    fxCtx.shadowColor = "rgba(255,217,94,0.95)";
+    fxCtx.shadowBlur = 28 * strength;
+
+    fxCtx.fillStyle = "rgba(255,217,94,0.92)";
+    fxCtx.beginPath();
+    fxCtx.arc(x, y, 6.5 * strength, 0, Math.PI*2);
+    fxCtx.fill();
+
+    fxCtx.shadowBlur = 0;
+    fxCtx.fillStyle = "rgba(122,170,255,0.75)";
+    fxCtx.beginPath();
+    fxCtx.arc(x, y, 3.3 * strength, 0, Math.PI*2);
+    fxCtx.fill();
+
+    fxCtx.restore();
+  }
+
+  function animateGlowContinuous(toKey, duration=1500){
+    return new Promise(resolve=>{
+      const path = el.masterPath;
+      const startLen = state.nodeLen.stimulus;
+      const endLen   = state.nodeLen[toKey] ?? state.nodeLen.effector;
+
+      const a = Math.min(startLen, endLen);
+      const b = Math.max(startLen, endLen);
+
+      const t0 = performance.now();
+
+      function frame(t){
+        const p = Math.min(1, (t - t0) / duration);
+        const ease = 1 - Math.pow(1 - p, 3);
+        const len = a + (b - a) * ease;
+
+        // fade a bit for tail
+        fxCtx.save();
+        fxCtx.globalCompositeOperation = "source-over";
+        fxCtx.fillStyle = "rgba(0,0,0,0.08)";
+        fxCtx.fillRect(0,0,fxW,fxH);
+        fxCtx.restore();
+
+        const pt = path.getPointAtLength(len);
+        drawGlowDot(pt.x, pt.y, 1);
+
+        if(p < 1) requestAnimationFrame(frame);
+        else resolve();
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  /* ===== Fix for “starts from second then first” ===== */
+  function computeNodeLengthsConstrained(){
+    const path = el.masterPath;
+    const total = path.getTotalLength();
+    state.pathTotal = total;
+
+    const ranges = {
+      stimulus: [0.00, 0.18],
+      receptor: [0.10, 0.40],
+      sensory:  [0.28, 0.60],
+      cns:      [0.50, 0.85],
+      effector: [0.75, 1.00],
+    };
+
+    function findLenForPointInRange(x,y, f0,f1){
+      const l0 = f0*total, l1 = f1*total;
+      let bestL=l0, bestD=1e18;
+
+      const samples = 180;
+      for(let i=0;i<=samples;i++){
+        const l = l0 + (i/samples)*(l1-l0);
+        const p = path.getPointAtLength(l);
+        const d = (p.x-x)*(p.x-x) + (p.y-y)*(p.y-y);
+        if(d<bestD){ bestD=d; bestL=l; }
+      }
+
+      let a = Math.max(l0, bestL - (l1-l0)*0.15);
+      let b = Math.min(l1, bestL + (l1-l0)*0.15);
+      for(let iter=0; iter<10; iter++){
+        const m1 = a + (b-a)/3;
+        const m2 = b - (b-a)/3;
+        const p1 = path.getPointAtLength(m1);
+        const p2 = path.getPointAtLength(m2);
+        const d1 = (p1.x-x)*(p1.x-x) + (p1.y-y)*(p1.y-y);
+        const d2 = (p2.x-x)*(p2.x-x) + (p2.y-y)*(p2.y-y);
+        if(d1 < d2) b = m2; else a = m1;
+      }
+      return (a+b)/2;
+    }
+
+    const circles = Array.from(el.nodesGroup.querySelectorAll("circle[data-node]"));
+    circles.forEach(c=>{
+      const key = c.getAttribute("data-node");
+      const x = parseFloat(c.getAttribute("cx"));
+      const y = parseFloat(c.getAttribute("cy"));
+      const [f0,f1] = ranges[key] || [0,1];
+      state.nodeLen[key] = findLenForPointInRange(x,y,f0,f1);
+    });
+
+    for(let i=1;i<ORDER.length;i++){
+      const prev = ORDER[i-1], cur = ORDER[i];
+      if(state.nodeLen[cur] < state.nodeLen[prev]){
+        state.nodeLen[cur] = Math.min(total, state.nodeLen[prev] + 0.06*total);
+      }
+    }
+  }
+
+  /* ===== UI: pieces ===== */
+  function renderPieces(){
+    el.piecesWrap.innerHTML = "";
+    PIECES.forEach(p=>{
+      const card = document.createElement("div");
+      card.className = "piece";
+      card.draggable = true;
+      card.dataset.pid = p.id;
+      card.innerHTML = `
+        <div class="pIcon">${p.emoji}</div>
+        <div class="pText">
+          <div class="pName">${p.name}</div>
+          <div class="pHint">${p.hint}</div>
+        </div>
+      `;
+
+      card.addEventListener("click", ()=>{
+        if(state.running) return;
+        state.selectedPiece = p.id;
+        document.querySelectorAll(".piece").forEach(n=>n.classList.remove("selected"));
+        card.classList.add("selected");
+        el.selectedPill.textContent = `🧩 Selected: ${p.emoji} ${p.name}`;
+        haptic(10);
+      });
+
+      card.addEventListener("dragstart", (e)=>{
+        if(state.running){ e.preventDefault(); return; }
+        e.dataTransfer.setData("text/plain", p.id);
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      el.piecesWrap.appendChild(card);
+    });
+  }
+
+  function placeIntoSlot(slotKey, pieceId, slotEl){
+    clearSlotMarks();
+    slotEl.classList.remove("pop");
+    slotEl.getBoundingClientRect();
+    slotEl.classList.add("pop");
+
+    state.placed[slotKey] = pieceId;
+    const p = pieceById(pieceId);
+    el.slotText[slotKey].textContent = `${p.emoji} ${p.name}`;
+
+    // update icons on the left for stimulus/receptor
+    if(slotKey === "stimulus") el.badgeStim.textContent = p.emoji;
+    if(slotKey === "receptor") el.badgeReceptor.textContent = p.emoji;
+
+    el.status.textContent = "Ready to test ✅";
+    updateHUD();
+    haptic(10);
+  }
+
+  el.slots.forEach(slotEl=>{
+    const key = slotEl.dataset.slot;
+
+    slotEl.addEventListener("dragover",(e)=>{
+      if(state.running) return;
+      e.preventDefault();
+      slotEl.classList.add("drop");
+    });
+    slotEl.addEventListener("dragleave",()=>slotEl.classList.remove("drop"));
+
+    slotEl.addEventListener("drop",(e)=>{
+      if(state.running) return;
+      e.preventDefault();
+      slotEl.classList.remove("drop");
+      const pid = e.dataTransfer.getData("text/plain");
+      if(!pid) return;
+      placeIntoSlot(key, pid, slotEl);
+    });
+
+    slotEl.addEventListener("click", ()=>{
+      if(state.running) return;
+      if(!state.selectedPiece){
+        toast("Pick a piece first 👇", 1200);
+        haptic(8);
+        return;
+      }
+      placeIntoSlot(key, state.selectedPiece, slotEl);
+    });
+  });
+
+  /* ===== validation ===== */
+  function stimulusMatchesReceptor(stimPid, recPid){
+    if(stimPid === "stim_light") return recPid === "rec_eye";
+    if(stimPid === "stim_fire" || stimPid === "stim_needle") return recPid === "rec_skin";
+    return false;
+  }
+
+  function expectedForSlot(slotKey){
+    if(slotKey === "stimulus") return ["stim_fire","stim_needle","stim_light"];
+    if(slotKey === "receptor") return ["rec_skin","rec_eye"];
+    if(slotKey === "sensory")  return ["sensory"];
+    if(slotKey === "cns")      return state.mode === "reflex" ? ["spinal"] : ["spinal","brain"];
+    if(slotKey === "effector") return ["effector"];
+    return [];
+  }
+
+  function slotCorrect(slotKey){
+    const pid = state.placed[slotKey];
+    if(!pid) return false;
+
+    const ok = expectedForSlot(slotKey).includes(pid);
+    if(!ok) return false;
+
+    if(slotKey === "receptor"){
+      const stim = state.placed.stimulus;
+      const rec  = state.placed.receptor;
+      if(!stim || !rec) return false;
+      return stimulusMatchesReceptor(stim, rec);
+    }
+    return true;
+  }
+
+  async function sendSignal(){
+    if(state.running) return;
+
+    try{
+      clearSlotMarks();
+      resizeFx();
+      clearFx();
+
+      const missing = ORDER.filter(k => !state.placed[k]);
+      if(missing.length){
+        toast("Place all 5 parts first 👇", 1600);
+        el.status.textContent = "Missing pieces";
+        haptic(20);
+        return;
+      }
+
+      state.running = true;
+      el.status.textContent = "Signal running… ⚡";
+
+      let stopKey = "effector";
+      for (const key of ORDER){
+        const slotEl = document.querySelector(`.slot[data-slot="${key}"]`);
+        if(slotCorrect(key)){
+          slotEl.classList.add("ok");
+        } else {
+          stopKey = key;
+          break;
+        }
+      }
+
+      if(stopKey === "receptor"){
+        const stim = pieceById(state.placed.stimulus);
+        toast(`❌ Mismatch: ${stim?.emoji || "Stimulus"} needs the correct receptor`, 2200);
+      }
+
+      await animateGlowContinuous(stopKey, 1500);
+      haptic(stopKey === "effector" ? 35 : 60);
+
+      if(stopKey !== "effector"){
+        const badEl = document.querySelector(`.slot[data-slot="${stopKey}"]`);
+        state.mistakes++;
+        updateHUD();
+
+        badEl.classList.remove("ok");
+        badEl.classList.add("fail","showX");
+        shakeSlot(badEl);
+
+        el.status.textContent = "Stopped ❌";
+        toast("❌ Signal stopped — wrong part here", 1700);
+        state.running = false;
+        return;
+      }
+
+      el.status.textContent = "Correct! ✅";
+      toast("✅ Correct pathway!", 2000);
+      state.running = false;
+
+    }catch(err){
+      console.error(err);
+      state.running = false;
+      el.status.textContent = "Error ❌";
+      toast("⚠️ A script error happened. Open Console (F12) to see it.", 2600);
+    }
+  }
+
+  function setMode(mode){
+    state.mode = mode;
+    el.modePill.textContent = mode === "reflex" ? "⚡ Mode: Reflex" : "🧠 Mode: Brain";
+    el.labelCns.textContent = mode === "reflex" ? "4) CNS (spinal cord)" : "4) CNS (brain / spinal cord)";
+    el.badgeCns.textContent = mode === "reflex" ? "🧷" : "🧠";
+    reset(false);
+    toast(mode === "reflex" ? "Reflex mode ⚡" : "Brain mode 🧠");
+  }
+
+  function reset(showToast=true){
+    state.running = false;
+
+    resizeFx();
+    clearFx();
+
+    state.selectedPiece = null;
+    el.selectedPill.textContent = "🧩 Selected: none";
+    state.placed = { stimulus:null,receptor:null,sensory:null,cns:null,effector:null };
+
+    el.badgeStim.textContent = "⚡";
+    el.badgeReceptor.textContent = "🧤";
+
+    for(const k of ORDER) el.slotText[k].textContent = "Drop a piece here";
+    clearSlotMarks();
+
+    el.status.textContent = "Build your pathway";
+    updateHUD();
+    renderPieces();
+    if(showToast) toast("Reset 🔁");
+  }
+
+  el.btnSend.addEventListener("click", sendSignal);
+  el.btnReset.addEventListener("click", ()=>{ state.mistakes = 0; reset(true); });
+  el.btnReflex.addEventListener("click", ()=>setMode("reflex"));
+  el.btnBrain.addEventListener("click", ()=>setMode("brain"));
+
+  function init(){
+    placeSlotsFromSvgNodes();
+    resizeFx();
+    computeNodeLengthsConstrained();
+    renderPieces();
+    setMode("reflex");
+    reset(false);
+    toast("Place pieces, then press Send Signal 🚀", 2000);
+
+    window.addEventListener("resize", () => {
+      placeSlotsFromSvgNodes();
+      resizeFx();
+      computeNodeLengthsConstrained();
+    });
+  }
+  init();
+})();
+</script>
+</body>
+</html>
